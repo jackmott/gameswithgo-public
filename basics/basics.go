@@ -3,7 +3,7 @@ package main
 func main() {
 
 	/*
-		var a int8  // -127,127
+		var a int8  // -128,127
 		var b uint8 // 0  255
 		var c int16
 		var d uint16
