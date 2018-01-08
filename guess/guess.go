@@ -1,5 +1,6 @@
 package main
 
+// Optional homework
 // 1.  Make the program print out how many tries it took to win.
 // 2.  See if you can tell if the user is lying
 
