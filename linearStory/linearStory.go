@@ -37,7 +37,6 @@ func main() {
 	page1 := storyPage{"You are standing in an open field west of a white house.", nil}
 	page1.addToEnd("You climb into the attic, it is pitch black, you can't see a thing!")
 	page1.addToEnd("You are eaten by a Grue")
-
 	page1.addAfter("Testing AddAfter")
 	page1.playStory()
 
