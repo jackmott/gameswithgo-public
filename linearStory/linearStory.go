@@ -11,20 +11,34 @@ type storyPage struct {
 	nextPage *storyPage
 }
 
-func playStory(page *storyPage) {
-	if page == nil {
-		return
+func (page *storyPage) playStory() {
+	for page != nil {
+		fmt.Println(page.text)
+		page = page.nextPage
 	}
-	fmt.Println(page.text)
-	playStory(page.nextPage)
 }
+
+func (page *storyPage) addToEnd(text string) {
+	for page.nextPage != nil {
+		page = page.nextPage
+	}
+	page.nextPage = &storyPage{text, nil}
+}
+
+func (page *storyPage) addAfter(text string) {
+	newPage := &storyPage{text, page.nextPage}
+	page.nextPage = newPage
+}
+
+// Delete
 
 func main() {
 
-	page1 := storyPage{"It was a dark and stormy night.", nil}
-	page2 := storyPage{"You are alone, and you need to find the sacred helmet before the bad guys do", nil}
-	page3 := storyPage{"You see a troll ahead", nil}
-	page1.nextPage = &page2
-	page2.nextPage = &page3
-	playStory(&page2)
+	page1 := storyPage{"You are standing in an open field west of a white house.", nil}
+	page1.addToEnd("You climb into the attic, it is pitch black, you can't see a thing!")
+	page1.addToEnd("You are eaten by a Grue")
+
+	page1.addAfter("Testing AddAfter")
+	page1.playStory()
+
 }
