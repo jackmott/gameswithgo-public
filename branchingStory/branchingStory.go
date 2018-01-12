@@ -32,11 +32,11 @@ func (node *storyNode) printStory(depth int) {
 	}
 }
 
+var scanner *bufio.Scanner
+
 func (node *storyNode) play() {
 	fmt.Println(node.text)
-
 	if node.yesPath != nil && node.noPath != nil {
-		scanner := bufio.NewScanner(os.Stdin)
 		for {
 			scanner.Scan()
 			answer := scanner.Text()
@@ -56,7 +56,7 @@ func (node *storyNode) play() {
 }
 
 func main() {
-
+	scanner = bufio.NewScanner(os.Stdin)
 	root := storyNode{"You are at the entrance to a dark cave. Do you want to go in the cave?", nil, nil}
 	winning := storyNode{"You have won!", nil, nil}
 	losing := storyNode{"You have lost!", nil, nil}
