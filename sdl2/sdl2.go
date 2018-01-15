@@ -70,7 +70,7 @@ func main() {
 	renderer.Copy(tex, nil, nil)
 	renderer.Present()
 
-	// Changd after EP 06 to address MacOSX
+	// Changed after EP 06 to address MacOSX
 	// OSX requires that you consume events for windows to open and work properly
 	for {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -79,6 +79,7 @@ func main() {
 				return
 			}
 		}
+		sdl.Delay(16)
 	}
 
 }
