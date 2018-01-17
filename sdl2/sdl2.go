@@ -17,7 +17,6 @@ type color struct {
 
 func setPixel(x, y int, c color, pixels []byte) {
 	index := (y*winWidth + x) * 4
-
 	if index < len(pixels)-4 && index >= 0 {
 		pixels[index] = c.r
 		pixels[index+1] = c.g
