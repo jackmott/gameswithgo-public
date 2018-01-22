@@ -3,6 +3,7 @@ package main
 //  **************Starting Soon!************************
 
 // TODO
+
 // make gameplay more interesting
 // 2 Player vs Playing computer
 // AI needs to be more imperfect
