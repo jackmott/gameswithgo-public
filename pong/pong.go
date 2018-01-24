@@ -273,7 +273,7 @@ func main() {
 	}
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("Testing SDL2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+	window, err := sdl.CreateWindow("Happy Pong", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
 		int32(winWidth), int32(winHeight), sdl.WINDOW_SHOWN)
 	if err != nil {
 		fmt.Println(err)
@@ -309,8 +309,8 @@ func main() {
 
 	keyState := sdl.GetKeyboardState()
 
-	noise, min, max := noise.MakeNoise(noise.FBM, .01, 0.2, 2, 3, winWidth, winHeight)
-	gradient := getGradient(color{255, 0, 0}, color{0, 0, 0})
+	noise, min, max := noise.MakeNoise(noise.FBM, .02, 0.5, 2, 3, winWidth, winHeight)
+	gradient := getGradient(color{0, 0, 255}, color{255, 255, 255})
 	noisePixels := rescaleAndDraw(noise, min, max, gradient, winWidth, winHeight)
 
 	var frameStart time.Time
