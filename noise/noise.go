@@ -55,8 +55,12 @@ func MakeNoise(noiseType NoiseType, frequency, lacunarity, gain float32, octaves
 	wg.Add(numRoutines)
 	batchSize := len(noise) / numRoutines
 
-	minChan := make(chan float32, numRoutines)
-	maxChan := make(chan float32, numRoutines)
+	minMaxChan := make(chan float32, numRoutines*2)
+
+	min = float32(math.MaxFloat32)
+	max = float32(-math.MaxFloat32)
+
+	// Starting Soon!!
 
 	for i := 0; i < numRoutines; i++ {
 		go func(i int) {
@@ -79,28 +83,21 @@ func MakeNoise(noiseType NoiseType, frequency, lacunarity, gain float32, octaves
 				} else if noise[j] > innerMax {
 					innerMax = noise[j]
 				}
-
 			}
-			minChan <- innerMin
-			maxChan <- innerMax
+
+			minMaxChan <- innerMin
+			minMaxChan <- innerMax
+
 		}(i)
 	}
-
 	wg.Wait()
-	close(minChan)
-	close(maxChan)
+	close(minMaxChan)
 
-	min = float32(math.MaxFloat32)
-	for currentMin := range minChan {
-		if currentMin < min {
-			min = currentMin
-		}
-	}
-
-	max = float32(-math.MaxFloat32)
-	for currentMax := range maxChan {
-		if currentMax > max {
-			max = currentMax
+	for v := range minMaxChan {
+		if v < min {
+			min = v
+		} else if v > max {
+			max = v
 		}
 	}
 

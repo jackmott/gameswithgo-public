@@ -305,12 +305,12 @@ func main() {
 
 	player1 := paddle{pos{50, 100}, 20, 100, 300, 0, color{255, 255, 255}}
 	player2 := paddle{pos{float32(winWidth) - 50, 100}, 20, 100, 300, 0, color{255, 255, 255}}
-	ball := ball{pos{300, 300}, 20, 400, 400, color{255, 255, 255}}
+	ball := ball{pos{300, 300}, 20, 200, 200, color{255, 255, 255}}
 
 	keyState := sdl.GetKeyboardState()
 
 	noise, min, max := noise.MakeNoise(noise.FBM, .02, 0.5, 2, 3, winWidth, winHeight)
-	gradient := getGradient(color{0, 0, 255}, color{255, 255, 255})
+	gradient := getGradient(color{255, 0, 0}, color{255, 240, 0})
 	noisePixels := rescaleAndDraw(noise, min, max, gradient, winWidth, winHeight)
 
 	var frameStart time.Time
