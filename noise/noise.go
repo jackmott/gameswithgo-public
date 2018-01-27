@@ -71,7 +71,7 @@ func MakeNoise(noiseType NoiseType, frequency, lacunarity, gain float32, octaves
 			end := start + batchSize - 1
 			for j := start; j < end; j++ {
 				x := j % w
-				y := (j - x) / h
+				y := (j - x) / w
 				if noiseType == TURBULENCE {
 					noise[j] = Turbulence(float32(x), float32(y), frequency, lacunarity, gain, octaves)
 				} else if noiseType == FBM {
