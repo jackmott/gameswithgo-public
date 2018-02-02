@@ -60,8 +60,6 @@ func MakeNoise(noiseType NoiseType, frequency, lacunarity, gain float32, octaves
 	min = float32(math.MaxFloat32)
 	max = float32(-math.MaxFloat32)
 
-	// Starting Soon!!
-
 	for i := 0; i < numRoutines; i++ {
 		go func(i int) {
 			defer wg.Done()
