@@ -362,15 +362,16 @@ func main() {
 	}
 	defer renderer.Destroy()
 
-	var audioSpec sdl.AudioSpec
-	explosionBytes, _ := sdl.LoadWAV("explode.wav", &audioSpec)
-	audioID, err := sdl.OpenAudioDevice("", false, &audioSpec, nil, 0)
+	// Note, run "go get -u github.com/veandco/go-sdl2/sdl" to get the latest sdl2 bindings
+	// which fixes an unecessary parameter in the LoadWAV call
+	explosionBytes, audioSpec := sdl.LoadWAV("explode.wav")
+	audioID, err := sdl.OpenAudioDevice("", false, audioSpec, nil, 0)
 	if err != nil {
 		panic(err)
 	}
 	defer sdl.FreeWAV(explosionBytes)
 
-	audioState := audioState{explosionBytes, audioID, &audioSpec}
+	audioState := audioState{explosionBytes, audioID, audioSpec}
 
 	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "1")
 
