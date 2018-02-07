@@ -1,13 +1,19 @@
+// Homework
+// 1. Add some new operations
+// 2. Add an operation that takes 3 arguments such as LERP (linear interpolation)
+// 3. Add time along with X and Y as inputs to Eval, and make random videos (maybe do this in a separate folder as we won't use it on stream)
+
 package main
 
 import (
 	"fmt"
 	. "github.com/jackmott/evolvingpictures/apt"
 	"github.com/veandco/go-sdl2/sdl"
+	"math/rand"
 	"time"
 )
 
-const winWidth, winHeight, winDepth int = 640, 480, 100
+const winWidth, winHeight, winDepth int = 1280, 720, 100
 
 type audioState struct {
 	explosionBytes []byte
@@ -62,7 +68,7 @@ func pixelsToTexture(renderer *sdl.Renderer, pixels []byte, w, h int) *sdl.Textu
 	return tex
 }
 
-func APTToTexture(node1, node2 Node, w, h int, renderer *sdl.Renderer) *sdl.Texture {
+func aptToTexture(redNode, greenNode, blueNode Node, w, h int, renderer *sdl.Renderer) *sdl.Texture {
 	// -1.0 and 1.0
 	scale := float32(255 / 2)
 	offset := float32(-1.0 * scale)
@@ -73,14 +79,15 @@ func APTToTexture(node1, node2 Node, w, h int, renderer *sdl.Renderer) *sdl.Text
 		for xi := 0; xi < w; xi++ {
 			x := float32(xi)/float32(w)*2 - 1
 
-			c := node1.Eval(x, y)
-			c2 := node2.Eval(x, y)
+			r := redNode.Eval(x, y)
+			g := greenNode.Eval(x, y)
+			b := blueNode.Eval(x, y)
 
-			pixels[pixelIndex] = byte(c*scale - offset)
+			pixels[pixelIndex] = byte(r*scale - offset)
 			pixelIndex++
-			pixels[pixelIndex] = byte(c2*scale - offset)
+			pixels[pixelIndex] = byte(g*scale - offset)
 			pixelIndex++
-			pixels[pixelIndex] = 0 //byte(c*scale - offset)
+			pixels[pixelIndex] = byte(b*scale - offset)
 			pixelIndex++
 			pixelIndex++
 
@@ -130,16 +137,55 @@ func main() {
 	currentMouseState := getMouseState()
 	//prevMouseState := currentMouseState
 
-	x := &OpX{}
-	y := &OpY{}
-	sine := &OpSin{}
-	plus := &OpPlus{}
+	rand.Seed(time.Now().UTC().UnixNano())
 
-	sine.Child = x
-	plus.LeftChild = sine
-	plus.RightChild = y
+	aptR := GetRandomNode()
+	aptG := GetRandomNode()
+	aptB := GetRandomNode()
 
-	tex := APTToTexture(plus, sine, 640, 480, renderer)
+	num := rand.Intn(20)
+	for i := 0; i < num; i++ {
+		aptR.AddRandom(GetRandomNode())
+	}
+	num = rand.Intn(20)
+	for i := 0; i < num; i++ {
+		aptG.AddRandom(GetRandomNode())
+	}
+
+	num = rand.Intn(20)
+	for i := 0; i < num; i++ {
+		aptB.AddRandom(GetRandomNode())
+	}
+
+	for {
+		_, nilCount := aptR.NodeCounts()
+		if nilCount == 0 {
+			break
+		}
+		aptR.AddRandom(GetRandomLeaf())
+	}
+
+	for {
+		_, nilCount := aptG.NodeCounts()
+		if nilCount == 0 {
+			break
+		}
+		aptG.AddRandom(GetRandomLeaf())
+	}
+
+	for {
+		_, nilCount := aptB.NodeCounts()
+		if nilCount == 0 {
+			break
+		}
+		aptB.AddRandom(GetRandomLeaf())
+	}
+
+	fmt.Println("R:", aptR)
+	fmt.Println("G:", aptG)
+	fmt.Println("B:", aptB)
+
+	tex := aptToTexture(aptR, aptG, aptB, 1280, 720, renderer)
 
 	for {
 		frameStart := time.Now()

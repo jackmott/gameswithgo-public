@@ -28,7 +28,7 @@ import (
 	"time"
 )
 
-const winWidth, winHeight, winDepth int = 800, 600, 100
+const winWidth, winHeight, winDepth int = 1280, 720, 100
 
 type audioState struct {
 	explosionBytes []byte
@@ -380,7 +380,7 @@ func main() {
 	cloudPixels := rescaleAndDraw(cloudNoise, min, max, cloudGradient, winWidth, winHeight)
 	cloudTexture := pixelsToTexture(renderer, cloudPixels, winWidth, winHeight)
 
-	balloons := loadBalloons(renderer, 25)
+	balloons := loadBalloons(renderer, 100)
 	var elapsedTime float32
 	currentMouseState := getMouseState()
 	prevMouseState := currentMouseState
