@@ -185,7 +185,7 @@ func main() {
 	fmt.Println("G:", aptG)
 	fmt.Println("B:", aptB)
 
-	tex := aptToTexture(aptR, aptG, aptB, 1280, 720, renderer)
+	tex := aptToTexture(aptR, aptG, aptB, 1920, 1080, renderer)
 
 	for {
 		frameStart := time.Now()
