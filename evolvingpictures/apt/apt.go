@@ -3,7 +3,6 @@
 package apt
 
 import (
-	"fmt"
 	"github.com/jackmott/noise"
 	"math"
 	"math/rand"
@@ -13,166 +12,161 @@ import (
 // + / * - Sin Cos Atan SimplexNoise X Y Constants...
 // Leaf Node (0 children)
 // Single Node (sin/cos)
-// DoubleNode (+, -)
+// BaseNode (+, -)
 
 type Node interface {
 	Eval(x, y float32) float32
 	String() string
+	SetParent(parent Node)
+	GetParent() Node
+	GetChildren() []Node
 	AddRandom(node Node)
-	NodeCounts() (nodeCount, nilCount int)
+	AddLeaf(leaf Node) bool
+	NodeCount() int
 }
 
-type LeafNode struct{}
-
-func (leaf *LeafNode) AddRandom(node Node) {
-	//panic("ERROR: You tried to add a node to a leaf node")
-	fmt.Println("tried to add a leaf node")
-}
-
-func (leaf *LeafNode) NodeCounts() (nodeCount, nilCount int) {
-	return 1, 0
-}
-
-type SingleNode struct {
-	Child Node
-}
-
-func (single *SingleNode) AddRandom(node Node) {
-	if single.Child == nil {
-		single.Child = node
-	} else {
-		single.Child.AddRandom(node)
-	}
-}
-
-func (single *SingleNode) NodeCounts() (nodeCount, nilCount int) {
-	if single.Child == nil {
-		return 1, 1
-	} else {
-		childNodeCount, childNilCount := single.Child.NodeCounts()
-		return 1 + childNodeCount, childNilCount
-	}
-}
-
-type DoubleNode struct {
-	LeftChild  Node
-	RightChild Node
-}
-
-func (double *DoubleNode) NodeCounts() (nodeCount, nilCount int) {
-	var leftCount, leftNilCount, rightCount, rightNilCount int
-	if double.LeftChild == nil {
-		leftNilCount = 1
-		leftCount = 0
-	} else {
-		leftCount, leftNilCount = double.LeftChild.NodeCounts()
-	}
-
-	if double.RightChild == nil {
-		rightNilCount = 1
-		rightCount = 0
-	} else {
-		rightCount, rightNilCount = double.RightChild.NodeCounts()
-	}
-
-	return 1 + leftCount + rightCount, leftNilCount + rightNilCount
-}
-
-func (double *DoubleNode) AddRandom(node Node) {
-	r := rand.Intn(2)
-	if r == 0 {
-		if double.LeftChild == nil {
-			double.LeftChild = node
-		} else {
-			double.LeftChild.AddRandom(node)
-		}
-	} else {
-		if double.RightChild == nil {
-			double.RightChild = node
-		} else {
-			double.RightChild.AddRandom(node)
-		}
-	}
-}
-
-type TripleNode struct {
-	LeftChild   Node
-	MiddleChild Node
-	RightChild  Node
-}
-
-func (triple *TripleNode) NodeCounts() (nodeCount, nilCount int) {
-	var leftCount, leftNilCount, middleCount, middleNilCount, rightCount, rightNilCount int
-	if triple.LeftChild == nil {
-		leftNilCount = 1
-		leftCount = 0
-	} else {
-		leftCount, leftNilCount = triple.LeftChild.NodeCounts()
-	}
-
-	if triple.MiddleChild == nil {
-		middleNilCount = 1
-		middleCount = 0
-	} else {
-		middleCount, middleNilCount = triple.MiddleChild.NodeCounts()
-	}
-
-	if triple.RightChild == nil {
-		rightNilCount = 1
-		rightCount = 0
-	} else {
-		rightCount, rightNilCount = triple.RightChild.NodeCounts()
-	}
-
-	return 1 + leftCount + middleCount + rightCount, leftNilCount + middleNilCount + rightNilCount
-}
-
-func (triple *TripleNode) AddRandom(node Node) {
-	r := rand.Intn(3)
-	if r == 0 {
-		if triple.LeftChild == nil {
-			triple.LeftChild = node
-		} else {
-			triple.LeftChild.AddRandom(node)
-		}
-	} else if r == 1 {
-		if triple.MiddleChild == nil {
-			triple.MiddleChild = node
-		} else {
-			triple.MiddleChild.AddRandom(node)
-		}
-	} else {
-		if triple.RightChild == nil {
-			triple.RightChild = node
-		} else {
-			triple.RightChild.AddRandom(node)
-		}
-	}
+type BaseNode struct {
+	Parent   Node
+	Children []Node
 }
 
 type OpLerp struct {
-	TripleNode
+	BaseNode
+}
+
+func GetNthNode(node Node, n, count int) (Node, int) {
+	if n == count {
+		return node, count
+	}
+	var result Node
+	for _, child := range node.GetChildren() {
+		count++
+		result, count = GetNthNode(child, n, count)
+		if result != nil {
+			return result, count
+		}
+	}
+	return nil, count
+}
+
+func Mutate(node Node) Node {
+	r := rand.Intn(23)
+	var mutatedNode Node
+	if r <= 19 {
+		mutatedNode = GetRandomNode()
+	} else {
+		mutatedNode = GetRandomLeaf()
+	}
+
+	// Fix up parents child pointer to point to the new node
+	if node.GetParent() != nil {
+		for i, parentChild := range node.GetParent().GetChildren() {
+			if parentChild == node {
+				node.GetParent().GetChildren()[i] = mutatedNode
+			}
+		}
+	}
+
+	// Add children from the old node to the new mutated node
+	for i, child := range node.GetChildren() {
+		if i >= len(mutatedNode.GetChildren()) {
+			break
+		}
+		mutatedNode.GetChildren()[i] = child
+		child.SetParent(mutatedNode)
+	}
+
+	// Any nil children get filled in with a random leaf
+	for i, child := range mutatedNode.GetChildren() {
+		if child == nil {
+			leaf := GetRandomLeaf()
+			leaf.SetParent(mutatedNode)
+			mutatedNode.GetChildren()[i] = leaf
+		}
+	}
+
+	mutatedNode.SetParent(node.GetParent())
+	return mutatedNode
+}
+
+func (node *BaseNode) GetParent() Node {
+	return node.Parent
+}
+
+func (node *BaseNode) GetChildren() []Node {
+	return node.Children
+}
+
+func (node *BaseNode) NodeCount() int {
+	count := 1
+	for _, child := range node.Children {
+		count += child.NodeCount()
+	}
+	return count
+}
+
+func (node *BaseNode) Eval(x, y float32) float32 {
+	panic("tried to call eval on basenode")
+}
+
+func (node *BaseNode) String() string {
+	panic("tried to call string on basenode")
+}
+
+func (node *BaseNode) SetParent(parent Node) {
+	node.Parent = parent
+}
+
+func (node *BaseNode) AddRandom(nodeToAdd Node) {
+	addIndex := rand.Intn(len(node.Children))
+	if node.Children[addIndex] == nil {
+		nodeToAdd.SetParent(node)
+		node.Children[addIndex] = nodeToAdd
+	} else {
+		node.Children[addIndex].AddRandom(nodeToAdd)
+	}
+}
+
+func (node *BaseNode) AddLeaf(leaf Node) bool {
+	for i, child := range node.Children {
+		if child == nil {
+			leaf.SetParent(node)
+			node.Children[i] = leaf
+			return true
+		} else if node.Children[i].AddLeaf(leaf) {
+			return true
+		}
+	}
+	return false
+}
+
+func NewOpLerp() *OpLerp {
+	return &OpLerp{BaseNode{nil, make([]Node, 3)}}
 }
 
 func (op *OpLerp) Eval(x, y float32) float32 {
 
-	a := op.LeftChild.Eval(x, y)
-	b := op.MiddleChild.Eval(x, y)
-	pct := op.RightChild.Eval(x, y)
+	a := op.Children[0].Eval(x, y)
+	b := op.Children[1].Eval(x, y)
+	pct := op.Children[2].Eval(x, y)
 	return a + pct*(b-a)
 }
 
 func (op *OpLerp) String() string {
-	return "( Lerp " + op.LeftChild.String() + " " + op.MiddleChild.String() + " " + op.RightChild.String() + " )"
+	return "( Lerp " + op.Children[0].String() + " " + op.Children[1].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpClip struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpClip() *OpClip {
+	return &OpClip{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpClip) Eval(x, y float32) float32 {
-	value := op.LeftChild.Eval(x, y)
-	max := float32(math.Abs(float64(op.RightChild.Eval(x, y))))
+	value := op.Children[0].Eval(x, y)
+	max := float32(math.Abs(float64(op.Children[1].Eval(x, y))))
 	if value > max {
 		return max
 	} else if value < -max {
@@ -182,229 +176,305 @@ func (op *OpClip) Eval(x, y float32) float32 {
 }
 
 func (op *OpClip) String() string {
-	return "( Clip " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( Clip " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpWrap struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpWrap() *OpWrap {
+	return &OpWrap{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpWrap) Eval(x, y float32) float32 {
-	f := op.Child.Eval(x, y)
+	f := op.Children[0].Eval(x, y)
 	temp := (f - -1.0) / (2.0)
 	return -1.0 + 2.0*(temp-float32(math.Floor(float64(temp))))
 }
 func (op *OpWrap) String() string {
-	return "(Wrap " + op.Child.String() + ")"
+	return "(Wrap " + op.Children[0].String() + ")"
 }
 
 type OpSin struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpSin() *OpSin {
+	return &OpSin{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpSin) Eval(x, y float32) float32 {
-	return float32(math.Sin(float64(op.Child.Eval(x, y))))
+	return float32(math.Sin(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpSin) String() string {
-	return "( Sin " + op.Child.String() + " )"
+	return "( Sin " + op.Children[0].String() + " )"
 }
 
 type OpCos struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpCos() *OpCos {
+	return &OpCos{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpCos) Eval(x, y float32) float32 {
-	return float32(math.Cos(float64(op.Child.Eval(x, y))))
+	return float32(math.Cos(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpCos) String() string {
-	return "( Cos " + op.Child.String() + " )"
+	return "( Cos " + op.Children[0].String() + " )"
 }
 
 type OpAtan struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpAtan() *OpAtan {
+	return &OpAtan{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpAtan) Eval(x, y float32) float32 {
-	return float32(math.Atan(float64(op.Child.Eval(x, y))))
+	return float32(math.Atan(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpAtan) String() string {
-	return "( Atan " + op.Child.String() + " )"
+	return "( Atan " + op.Children[0].String() + " )"
 }
 
 type OpLog2 struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpLog2() *OpLog2 {
+	return &OpLog2{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpLog2) Eval(x, y float32) float32 {
-	return float32(math.Log2(float64(op.Child.Eval(x, y))))
+	return float32(math.Log2(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpLog2) String() string {
-	return "( Log2 " + op.Child.String() + " )"
+	return "( Log2 " + op.Children[0].String() + " )"
 }
 
 type OpSquare struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpSquare() *OpSquare {
+	return &OpSquare{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpSquare) Eval(x, y float32) float32 {
-	value := op.Child.Eval(x, y)
+	value := op.Children[0].Eval(x, y)
 	return value * value
 }
 
 func (op *OpSquare) String() string {
-	return "( Square " + op.Child.String() + " )"
+	return "( Square " + op.Children[0].String() + " )"
 }
 
 type OpNegate struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpNegate() *OpNegate {
+	return &OpNegate{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpNegate) Eval(x, y float32) float32 {
-	return -op.Child.Eval(x, y)
+	return -op.Children[0].Eval(x, y)
 }
 
 func (op *OpNegate) String() string {
-	return "( Negate " + op.Child.String() + " )"
+	return "( Negate " + op.Children[0].String() + " )"
 }
 
 type OpCeil struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpCeil() *OpCeil {
+	return &OpCeil{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpCeil) Eval(x, y float32) float32 {
-	return float32(math.Ceil(float64(op.Child.Eval(x, y))))
+	return float32(math.Ceil(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpCeil) String() string {
-	return "( Ceil " + op.Child.String() + " )"
+	return "( Ceil " + op.Children[0].String() + " )"
 }
 
 type OpFloor struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpFloor() *OpFloor {
+	return &OpFloor{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpFloor) Eval(x, y float32) float32 {
-	return float32(math.Floor(float64(op.Child.Eval(x, y))))
+	return float32(math.Floor(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpFloor) String() string {
-	return "( Floor " + op.Child.String() + " )"
+	return "( Floor " + op.Children[0].String() + " )"
 }
 
 type OpAbs struct {
-	SingleNode
+	BaseNode
+}
+
+func NewOpAbs() *OpAbs {
+	return &OpAbs{BaseNode{nil, make([]Node, 1)}}
 }
 
 func (op *OpAbs) Eval(x, y float32) float32 {
-	return float32(math.Abs(float64(op.Child.Eval(x, y))))
+	return float32(math.Abs(float64(op.Children[0].Eval(x, y))))
 }
 
 func (op *OpAbs) String() string {
-	return "( Abs " + op.Child.String() + " )"
+	return "( Abs " + op.Children[0].String() + " )"
 }
 
 type OpNoise struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpNoise() *OpNoise {
+	return &OpNoise{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpNoise) Eval(x, y float32) float32 {
-	return 80*noise.Snoise2(op.LeftChild.Eval(x, y), op.RightChild.Eval(x, y)) - 2.0
+	return 80*noise.Snoise2(op.Children[0].Eval(x, y), op.Children[1].Eval(x, y)) - 2.0
 }
 
 func (op *OpNoise) String() string {
-	return "( SimplexNoise " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( SimplexNoise " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpFBM struct {
-	TripleNode
+	BaseNode
+}
+
+func NewOpFBM() *OpFBM {
+	return &OpFBM{BaseNode{nil, make([]Node, 3)}}
 }
 
 func (op *OpFBM) Eval(x, y float32) float32 {
-	return 2*3.627*noise.Fbm2(op.LeftChild.Eval(x, y), op.RightChild.Eval(x, y), 5*op.MiddleChild.Eval(x, y), 0.5, 2, 3) + .492 - 1
+	return 2*3.627*noise.Fbm2(op.Children[0].Eval(x, y), op.Children[1].Eval(x, y), 5*op.Children[2].Eval(x, y), 0.5, 2, 3) + .492 - 1
 }
 
 func (op *OpFBM) String() string {
-	return "( FBM " + op.LeftChild.String() + " " + op.RightChild.String() + " " + op.MiddleChild.String() + " )"
+	return "( FBM " + op.Children[0].String() + " " + op.Children[1].String() + " " + op.Children[2].String() + " )"
 }
 
 type OpTurbulence struct {
-	TripleNode
+	BaseNode
+}
+
+func NewOpTurbulence() *OpTurbulence {
+	return &OpTurbulence{BaseNode{nil, make([]Node, 3)}}
 }
 
 func (op *OpTurbulence) Eval(x, y float32) float32 {
-	return 2*6.96*noise.Turbulence(op.LeftChild.Eval(x, y), op.RightChild.Eval(x, y), 5*op.MiddleChild.Eval(x, y), 0.5, 2, 3) - 1
+	return 2*6.96*noise.Turbulence(op.Children[0].Eval(x, y), op.Children[1].Eval(x, y), 5*op.Children[2].Eval(x, y), 0.5, 2, 3) - 1
 }
 
 func (op *OpTurbulence) String() string {
-	return "( Turbulence " + op.LeftChild.String() + " " + op.RightChild.String() + " " + op.MiddleChild.String() + " )"
+	return "( Turbulence " + op.Children[0].String() + " " + op.Children[1].String() + " " + op.Children[2].String() + " )"
 }
 
 type OpPlus struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpPlus() *OpPlus {
+	return &OpPlus{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpPlus) Eval(x, y float32) float32 {
-	return op.LeftChild.Eval(x, y) + op.RightChild.Eval(x, y)
+	return op.Children[0].Eval(x, y) + op.Children[1].Eval(x, y)
 }
 
 func (op *OpPlus) String() string {
-	return "( + " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( + " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpMinus struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpMinus() *OpMinus {
+	return &OpMinus{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpMinus) Eval(x, y float32) float32 {
-	return op.LeftChild.Eval(x, y) - op.RightChild.Eval(x, y)
+	return op.Children[0].Eval(x, y) - op.Children[1].Eval(x, y)
 }
 
 func (op *OpMinus) String() string {
-	return "( - " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( - " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpMult struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpMult() *OpMult {
+	return &OpMult{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpMult) Eval(x, y float32) float32 {
-	return op.LeftChild.Eval(x, y) * op.RightChild.Eval(x, y)
+	return op.Children[0].Eval(x, y) * op.Children[1].Eval(x, y)
 }
 
 func (op *OpMult) String() string {
-	return "( * " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( * " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpDiv struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpDiv() *OpDiv {
+	return &OpDiv{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpDiv) Eval(x, y float32) float32 {
-	return op.LeftChild.Eval(x, y) / op.RightChild.Eval(x, y)
+	return op.Children[0].Eval(x, y) / op.Children[1].Eval(x, y)
 }
 
 func (op *OpDiv) String() string {
-	return "( / " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( / " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpAtan2 struct {
-	DoubleNode
+	BaseNode
+}
+
+func NewOpAtan2() *OpAtan2 {
+	return &OpAtan2{BaseNode{nil, make([]Node, 2)}}
 }
 
 func (op *OpAtan2) Eval(x, y float32) float32 {
-	return float32(math.Atan2(float64(y), float64(x)))
+	return float32(math.Atan2(float64(op.Children[0].Eval(x, y)), float64(op.Children[1].Eval(x, y))))
 }
 
 func (op *OpAtan2) String() string {
-	return "( Atan2 " + op.LeftChild.String() + " " + op.RightChild.String() + " )"
+	return "( Atan2 " + op.Children[0].String() + " " + op.Children[1].String() + " )"
 }
 
 type OpX struct {
-	LeafNode
+	BaseNode
+}
+
+func NewOpX() *OpX {
+	return &OpX{BaseNode{nil, make([]Node, 0)}}
 }
 
 func (op *OpX) Eval(x, y float32) float32 {
@@ -416,7 +486,11 @@ func (op *OpX) String() string {
 }
 
 type OpY struct {
-	LeafNode
+	BaseNode
+}
+
+func NewOpY() *OpY {
+	return &OpY{BaseNode{nil, make([]Node, 0)}}
 }
 
 func (op *OpY) Eval(x, y float32) float32 {
@@ -428,8 +502,12 @@ func (op *OpY) String() string {
 }
 
 type OpConstant struct {
-	LeafNode
+	BaseNode
 	value float32
+}
+
+func NewOpConstant() *OpConstant {
+	return &OpConstant{BaseNode{nil, make([]Node, 0)}, rand.Float32()*2 - 1}
 }
 
 func (op *OpConstant) Eval(x, y float32) float32 {
@@ -444,45 +522,45 @@ func GetRandomNode() Node {
 	r := rand.Intn(20)
 	switch r {
 	case 0:
-		return &OpPlus{}
+		return NewOpPlus()
 	case 1:
-		return &OpMinus{}
+		return NewOpMinus()
 	case 2:
-		return &OpMult{}
+		return NewOpMult()
 	case 3:
-		return &OpDiv{}
+		return NewOpDiv()
 	case 4:
-		return &OpAtan2{}
+		return NewOpAtan2()
 	case 5:
-		return &OpAtan{}
+		return NewOpAtan()
 	case 6:
-		return &OpCos{}
+		return NewOpCos()
 	case 7:
-		return &OpSin{}
+		return NewOpSin()
 	case 8:
-		return &OpNoise{}
+		return NewOpNoise()
 	case 9:
-		return &OpSquare{}
+		return NewOpSquare()
 	case 10:
-		return &OpLog2{}
+		return NewOpLog2()
 	case 11:
-		return &OpNegate{}
+		return NewOpNegate()
 	case 12:
-		return &OpCeil{}
+		return NewOpCeil()
 	case 13:
-		return &OpFloor{}
+		return NewOpFloor()
 	case 14:
-		return &OpLerp{}
+		return NewOpLerp()
 	case 15:
-		return &OpAbs{}
+		return NewOpAbs()
 	case 16:
-		return &OpClip{}
+		return NewOpClip()
 	case 17:
-		return &OpWrap{}
+		return NewOpWrap()
 	case 18:
-		return &OpFBM{}
+		return NewOpFBM()
 	case 19:
-		return &OpTurbulence{}
+		return NewOpTurbulence()
 	}
 	panic("Get Random Noise Failed")
 }
@@ -491,11 +569,11 @@ func GetRandomLeaf() Node {
 	r := rand.Intn(3)
 	switch r {
 	case 0:
-		return &OpX{}
+		return NewOpX()
 	case 1:
-		return &OpY{}
+		return NewOpY()
 	case 2:
-		return &OpConstant{LeafNode{}, rand.Float32()*2 - 1}
+		return NewOpConstant()
 	}
 	panic("Error in get random Leaf")
 }

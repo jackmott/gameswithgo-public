@@ -100,7 +100,6 @@ func namedFunction() {
 }
 
 func makeNoise(pixels []byte, frequency, lacunarity, gain float32, octaves, w, h int) {
-	var mutex = &sync.Mutex{}
 	startTime := time.Now()
 	noise := make([]float32, winWidth*winHeight)
 	fmt.Println("freq:", frequency, "lac:", lacunarity, "gain:", gain, "octaves:", octaves)
