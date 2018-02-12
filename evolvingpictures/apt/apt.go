@@ -1,5 +1,3 @@
-//TODO backtracking on addrandom
-
 package apt
 
 import (
@@ -8,11 +6,6 @@ import (
 	"math/rand"
 	"strconv"
 )
-
-// + / * - Sin Cos Atan SimplexNoise X Y Constants...
-// Leaf Node (0 children)
-// Single Node (sin/cos)
-// BaseNode (+, -)
 
 type Node interface {
 	Eval(x, y float32) float32
