@@ -4,6 +4,7 @@ import (
 	"github.com/jackmott/noise"
 	"math"
 	"math/rand"
+	"reflect"
 	"strconv"
 )
 
@@ -13,6 +14,7 @@ type Node interface {
 	SetParent(parent Node)
 	GetParent() Node
 	GetChildren() []Node
+	SetChildren([]Node)
 	AddRandom(node Node)
 	AddLeaf(leaf Node) bool
 	NodeCount() int
@@ -25,6 +27,33 @@ type BaseNode struct {
 
 type OpLerp struct {
 	BaseNode
+}
+
+func CopyTree(node Node, parent Node) Node {
+	copy := reflect.New(reflect.ValueOf(node).Elem().Type()).Interface().(Node)
+	switch n := node.(type) {
+	case *OpConstant:
+		copy.(*OpConstant).value = n.value
+	}
+	copy.SetParent(parent)
+	copyChildren := make([]Node, len(node.GetChildren()))
+	copy.SetChildren(copyChildren)
+	for i := range copyChildren {
+		copyChildren[i] = CopyTree(node.GetChildren()[i], copy)
+	}
+	return copy
+}
+
+func ReplaceNode(old Node, new Node) {
+	oldParent := old.GetParent()
+	if oldParent != nil {
+		for i, child := range oldParent.GetChildren() {
+			if child == old {
+				oldParent.GetChildren()[i] = new
+			}
+		}
+	}
+	new.SetParent(oldParent)
 }
 
 func GetNthNode(node Node, n, count int) (Node, int) {
@@ -82,6 +111,9 @@ func Mutate(node Node) Node {
 	return mutatedNode
 }
 
+func (node *BaseNode) SetChildren(children []Node) {
+	node.Children = children
+}
 func (node *BaseNode) GetParent() Node {
 	return node.Parent
 }
