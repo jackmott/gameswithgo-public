@@ -25,10 +25,6 @@ type BaseNode struct {
 	Children []Node
 }
 
-type OpLerp struct {
-	BaseNode
-}
-
 func CopyTree(node Node, parent Node) Node {
 	copy := reflect.New(reflect.ValueOf(node).Elem().Type()).Interface().(Node)
 	switch n := node.(type) {
@@ -165,6 +161,10 @@ func (node *BaseNode) AddLeaf(leaf Node) bool {
 	return false
 }
 
+type OpLerp struct {
+	BaseNode
+}
+
 func NewOpLerp() *OpLerp {
 	return &OpLerp{BaseNode{nil, make([]Node, 3)}}
 }
@@ -178,7 +178,7 @@ func (op *OpLerp) Eval(x, y float32) float32 {
 }
 
 func (op *OpLerp) String() string {
-	return "( Lerp " + op.Children[0].String() + " " + op.Children[1].String() + " " + op.Children[1].String() + " )"
+	return "( Lerp " + op.Children[0].String() + " " + op.Children[1].String() + " " + op.Children[2].String() + " )"
 }
 
 type OpClip struct {

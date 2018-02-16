@@ -1,0 +1,3 @@
+R( Abs ( Abs ( Log2 ( * ( Clip 0.620347261 ( Clip ( + X -0.871553600 ) ( Lerp X Y 0.255378604 ) ) ) ( - ( Clip ( / 0.743862867 X ) Y ) ( Negate ( Square (Wrap ( Clip -0.277807832 -0.321541607 )) ) ) ) ) ) ) )
+G( SimplexNoise ( Atan2 X X ) (Wrap Y) )
+B( Ceil ( Abs ( Ceil ( SimplexNoise ( / ( Clip ( Lerp ( Ceil X ) (Wrap -0.343477607) ( Clip -0.428563237 X ) ) (Wrap ( Ceil ( / X ( - 0.905166507 0.621141076 ) ) )) ) ( Cos ( Cos ( - ( Atan2 X X ) ( Clip -0.166980505 X ) ) ) ) ) (Wrap ( Log2 ( Square ( FBM ( / (Wrap Y) 0.008192897 ) X ( * ( Abs X ) Y ) ) ) )) ) ) ) )

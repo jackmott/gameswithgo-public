@@ -303,9 +303,9 @@ func main() {
 
 	pixels := make([]byte, winWidth*winHeight*4)
 
-	player1 := paddle{pos{50, 100}, 20, 100, 300, 0, color{255, 255, 255}}
-	player2 := paddle{pos{float32(winWidth) - 50, 100}, 20, 100, 300, 0, color{255, 255, 255}}
-	ball := ball{pos{300, 300}, 20, 200, 200, color{255, 255, 255}}
+	player1 := paddle{pos{50, 100}, 20, 100, .3, 0, color{255, 255, 255}}
+	player2 := paddle{pos{float32(winWidth) - 50, 100}, 20, 100, .3, 0, color{255, 255, 255}}
+	ball := ball{pos{300, 300}, 20, .2, .2, color{255, 255, 255}}
 
 	keyState := sdl.GetKeyboardState()
 
@@ -358,10 +358,11 @@ func main() {
 		renderer.Copy(tex, nil, nil)
 		renderer.Present()
 
-		elapsedTime = float32(time.Since(frameStart).Seconds())
-		if elapsedTime < .005 {
-			sdl.Delay(5 - uint32(elapsedTime*1000.0))
-			elapsedTime = float32(time.Since(frameStart).Seconds())
+		elapsedTime = float32(time.Since(frameStart).Seconds() * 1000)
+		//	fmt.Println("ms per frame:", elapsedTime)
+		if elapsedTime < 6 {
+			sdl.Delay(6 - uint32(elapsedTime))
+			elapsedTime = float32(time.Since(frameStart).Seconds() * 1000)
 		}
 	}
 

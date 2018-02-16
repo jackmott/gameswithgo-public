@@ -1,6 +1,7 @@
 // Homework Ideas
 //
 // 1. Make the large image load in a goroutine, and display a loading indication while it is loading
+// #2 is I think this is impossible / impractical
 // 2. Instead of passing x,y and for each pixel, pass a single array for all of the pixels, and evalute the whole array at once
 //    measure and compare the performance, how much faster did it get?
 // Hard!! But fun
@@ -17,7 +18,11 @@ import (
 	. "github.com/jackmott/evolvingpictures/apt"
 	. "github.com/jackmott/evolvingpictures/gui"
 	"github.com/veandco/go-sdl2/sdl"
+	"io/ioutil"
 	"math/rand"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -32,6 +37,7 @@ type pixelResult struct {
 type guiState struct {
 	zoom      bool
 	zoomImage *sdl.Texture
+	zoomTree  *picture
 }
 
 type audioState struct {
@@ -61,16 +67,16 @@ func NewPicture() *picture {
 	p.g = GetRandomNode()
 	p.b = GetRandomNode()
 
-	num := rand.Intn(1) + 5
+	num := rand.Intn(30) + 1
 	for i := 0; i < num; i++ {
 		p.r.AddRandom(GetRandomNode())
 	}
-	num = rand.Intn(1) + 5
+	num = rand.Intn(30) + 1
 	for i := 0; i < num; i++ {
 		p.g.AddRandom(GetRandomNode())
 	}
 
-	num = rand.Intn(1) + 5
+	num = rand.Intn(30) + 1
 	for i := 0; i < num; i++ {
 		p.b.AddRandom(GetRandomNode())
 	}
@@ -159,7 +165,6 @@ func (p *picture) mutate() {
 
 	count := nodeToMutate.NodeCount()
 	r = rand.Intn(count)
-	fmt.Println(count, r)
 	nodeToMutate, count = GetNthNode(nodeToMutate, r, 0)
 	mutation := Mutate(nodeToMutate)
 	if nodeToMutate == p.r {
@@ -225,6 +230,36 @@ func aptToPixels(pic *picture, w, h int) []byte {
 	return pixels
 }
 
+func saveTree(p *picture) {
+
+	files, err := ioutil.ReadDir("./")
+	if err != nil {
+		panic(err)
+	}
+
+	biggestNumber := 0
+	for _, f := range files {
+		name := f.Name()
+		if strings.HasSuffix(name, ".apt") {
+			numberStr := strings.TrimSuffix(name, ".apt")
+			num, err := strconv.Atoi(numberStr)
+			if err == nil {
+				if num > biggestNumber {
+					biggestNumber = num
+				}
+			}
+		}
+	}
+
+	saveName := strconv.Itoa(biggestNumber+1) + ".apt"
+	file, err := os.Create(saveName)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	fmt.Fprintf(file, p.String())
+}
+
 func main() {
 
 	sdl.LogSetAllPriority(sdl.LOG_PRIORITY_VERBOSE)
@@ -265,6 +300,17 @@ func main() {
 
 	var elapsedTime float32
 
+	args := os.Args
+	if len(args) > 1 {
+		fileBytes, err := ioutil.ReadFile(args[1])
+		if err != nil {
+			panic(err)
+		}
+		fileStr := string(fileBytes)
+		_ = BeginLexing(fileStr)
+		return
+	}
+
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	picTrees := make([]*picture, numPics)
@@ -290,8 +336,13 @@ func main() {
 	}
 
 	keyboardState := sdl.GetKeyboardState()
+	prevKeyboardState := make([]uint8, len(keyboardState))
+	for i, v := range keyboardState {
+		prevKeyboardState[i] = v
+	}
+
 	mouseState := GetMouseState()
-	state := guiState{false, nil}
+	state := guiState{false, nil, nil}
 
 	for {
 		frameStart := time.Now()
@@ -343,10 +394,10 @@ func main() {
 					if button.WasLeftClicked {
 						button.IsSelected = !button.IsSelected
 					} else if button.WasRightClicked {
-						fmt.Println(picTrees[i])
 						zoomPixels := aptToPixels(picTrees[i], winWidth*2, winHeight*2)
 						zoomTex := pixelsToTexture(renderer, zoomPixels, winWidth*2, winHeight*2)
 						state.zoomImage = zoomTex
+						state.zoomTree = picTrees[i]
 						state.zoom = true
 					}
 					button.Draw(renderer)
@@ -380,10 +431,16 @@ func main() {
 			if !mouseState.RightButton && mouseState.PrevRightButton {
 				state.zoom = false
 			}
+			if keyboardState[sdl.SCANCODE_S] == 0 && prevKeyboardState[sdl.SCANCODE_S] != 0 {
+				saveTree(state.zoomTree)
+			}
 			renderer.Copy(state.zoomImage, nil, nil)
 
 		}
 		renderer.Present()
+		for i, v := range keyboardState {
+			prevKeyboardState[i] = v
+		}
 		elapsedTime = float32(time.Since(frameStart).Seconds() * 1000)
 		//	fmt.Println("ms per frame:", elapsedTime)
 		if elapsedTime < 5 {
