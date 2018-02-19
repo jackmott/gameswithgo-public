@@ -1,7 +1,9 @@
+//Starting soon!
+
 package apt
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -28,13 +30,87 @@ type lexer struct {
 	tokens chan token
 }
 
-func parse(tokens chan token) Node {
+func stringToNode(s string) Node {
+	switch s {
+	case "+":
+		return NewOpPlus()
+	case "-":
+		return NewOpMinus()
+	case "*":
+		return NewOpMult()
+	case "/":
+		return NewOpDiv()
+	case "Atan2":
+		return NewOpAtan2()
+	case "Atan":
+		return NewOpAtan()
+	case "Cos":
+		return NewOpCos()
+	case "Sin":
+		return NewOpSin()
+	case "SimplexNoise":
+		return NewOpNoise()
+	case "Square":
+		return NewOpSquare()
+	case "Log2":
+		return NewOpLog2()
+	case "Negate":
+		return NewOpNegate()
+	case "Ceil":
+		return NewOpCeil()
+	case "Floor":
+		return NewOpFloor()
+	case "Lerp":
+		return NewOpLerp()
+	case "Abs":
+		return NewOpAbs()
+	case "Clip":
+		return NewOpClip()
+	case "Wrap":
+		return NewOpWrap()
+	case "FBM":
+		return NewOpFBM()
+	case "Turbulence":
+		return NewOpTurbulence()
+	case "X":
+		return NewOpX()
+	case "Y":
+		return NewOpY()
+	case "Picture":
+		return NewOpPicture()
+	default:
+		panic("Error in parser token not understood:" + s)
+	}
+}
+
+func parse(tokens chan token, parent Node) Node {
 	for {
 		token, ok := <-tokens
 		if !ok {
 			panic("no more tokens")
 		}
-		fmt.Print(token.value, ",")
+
+		switch token.typ {
+		case op:
+			n := stringToNode(token.value)
+			n.SetParent(parent)
+			for i := range n.GetChildren() {
+				n.GetChildren()[i] = parse(tokens, n)
+			}
+			return n
+		case constant:
+			n := NewOpConstant()
+			n.SetParent(parent)
+			v, err := strconv.ParseFloat(token.value, 32)
+			if err != nil {
+				panic(err) // also add the err text?
+			}
+			n.value = float32(v)
+			return n
+		case closeParen, openParen:
+			continue
+		}
+
 	}
 	return nil
 }
@@ -46,7 +122,7 @@ type stateFunc func(*lexer) stateFunc
 func BeginLexing(s string) Node {
 	l := &lexer{input: s, tokens: make(chan token, 100)}
 	go l.run()
-	return parse(l.tokens)
+	return parse(l.tokens, nil)
 }
 
 func (l *lexer) run() {
@@ -82,7 +158,7 @@ func lexOp(l *lexer) stateFunc {
 }
 
 func lexNumber(l *lexer) stateFunc {
-	l.accept("+-.")
+	l.accept("-.")
 	digits := "0123456789"
 	l.acceptRun(digits)
 	if l.accept(".") {
@@ -118,7 +194,7 @@ func isWhiteSpace(r rune) bool {
 }
 
 func isStartOfNumber(r rune) bool {
-	return (r >= '0' && r <= '9') || r == '-' || r == '+' || r == '.'
+	return (r >= '0' && r <= '9') || r == '-' || r == '.'
 }
 
 func (l *lexer) emit(t tokenType) {

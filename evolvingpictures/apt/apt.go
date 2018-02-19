@@ -161,6 +161,22 @@ func (node *BaseNode) AddLeaf(leaf Node) bool {
 	return false
 }
 
+type OpPicture struct {
+	BaseNode
+}
+
+func NewOpPicture() *OpPicture {
+	return &OpPicture{BaseNode{nil, make([]Node, 3)}}
+}
+
+func (op *OpPicture) Eval(x, y float32) float32 {
+	panic("eval called on root of picture tree")
+}
+
+func (op *OpPicture) String() string {
+	return "( Picture\n" + op.Children[0].String() + "\n" + op.Children[1].String() + "\n" + op.Children[2].String() + " )"
+}
+
 type OpLerp struct {
 	BaseNode
 }

@@ -1,3 +1,4 @@
-R( Abs ( Abs ( Log2 ( * ( Clip 0.620347261 ( Clip ( + X -0.871553600 ) ( Lerp X Y 0.255378604 ) ) ) ( - ( Clip ( / 0.743862867 X ) Y ) ( Negate ( Square (Wrap ( Clip -0.277807832 -0.321541607 )) ) ) ) ) ) ) )
-G( SimplexNoise ( Atan2 X X ) (Wrap Y) )
-B( Ceil ( Abs ( Ceil ( SimplexNoise ( / ( Clip ( Lerp ( Ceil X ) (Wrap -0.343477607) ( Clip -0.428563237 X ) ) (Wrap ( Ceil ( / X ( - 0.905166507 0.621141076 ) ) )) ) ( Cos ( Cos ( - ( Atan2 X X ) ( Clip -0.166980505 X ) ) ) ) ) (Wrap ( Log2 ( Square ( FBM ( / (Wrap Y) 0.008192897 ) X ( * ( Abs X ) Y ) ) ) )) ) ) ) )
+( Picture
+( Atan2 ( SimplexNoise ( Lerp 0.159503579 Y ( Cos ( Log2 Y ) ) ) ( Cos (Wrap ( Lerp Y ( Floor -0.380235851 ) ( SimplexNoise Y Y ) )) ) ) ( Atan2 ( Sin ( Abs Y ) ) X ) )
+( - ( Atan2 ( FBM X ( SimplexNoise X Y ) ( Floor -0.221207619 ) ) ( Lerp 0.468280554 ( - 0.647615075 Y ) ( Cos ( SimplexNoise -0.841887593 Y ) ) ) ) X )
+( Square ( Clip ( Floor ( Abs ( Atan2 ( Floor ( Abs ( Atan2 ( Cos X ) ( Atan X ) ) ) ) ( + ( Turbulence Y ( + ( Atan2 X Y ) 0.612046361 ) (Wrap -0.875573754) ) ( * X ( Sin X ) ) ) ) ) ) ( - ( * ( Turbulence Y ( Clip Y Y ) Y ) ( Turbulence ( Ceil ( Atan2 X ( Lerp Y -0.822723687 X ) ) ) ( Abs X ) ( Cos -0.530426145 ) ) ) ( Ceil ( * 0.787272573 ( Square ( Atan Y ) ) ) ) ) ) ) )
