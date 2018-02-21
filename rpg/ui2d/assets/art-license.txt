@@ -1,0 +1,6 @@
+The great artists of the Dungeon Crawl Stone Soup team have recently enhanced and added to the already-amazing set with this supplemental collection of tiles: even more spells, effects, monsters, items, GUI elements, player avatars, terrain, and dungeon features.
+
+Have you ever played Dungeon Crawl Stone Soup? You should. Seriously, it's a great game. These tiles are a collaborative effort of many artists. See 
+
+Copyright/Attribution Notice: 
+You can use these tilesets in your program freely. No attribution is required. As a courtesy, include a link to the OGA page: http://opengameart.org/content/dungeon-crawl-32x32-tiles-supplemental, or the crawl-tiles page: https://github.com/crawl/tiles
