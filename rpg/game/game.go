@@ -4,28 +4,39 @@ package game
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 )
 
 type GameUI interface {
-	DrawThenGetInput(*Level) *Input
+	Draw(*Level)
+	GetInput() *Input
 }
 
+type InputType int
+
+const (
+	None InputType = iota
+	Up
+	Down
+	Left
+	Right
+	Quit
+)
+
 type Input struct {
-	up    bool
-	down  bool
-	left  bool
-	right bool
+	Typ InputType
 }
 
 type Tile rune
 
 const (
-	StoneWall Tile = '#'
-	DirtFloor Tile = '.'
-	Door      Tile = '|'
-	Blank     Tile = 0
-	Pending   Tile = -1
+	StoneWall  Tile = '#'
+	DirtFloor  Tile = '.'
+	ClosedDoor Tile = '|'
+	OpenDoor   Tile = '/'
+	Blank      Tile = 0
+	Pending    Tile = -1
 )
 
 type Entity struct {
@@ -76,7 +87,9 @@ func loadLevelFromFile(filename string) *Level {
 			case '#':
 				t = StoneWall
 			case '|':
-				t = Door
+				t = ClosedDoor
+			case '/':
+				t = OpenDoor
 			case '.':
 				t = DirtFloor
 			case 'P':
@@ -112,11 +125,66 @@ func loadLevelFromFile(filename string) *Level {
 	return level
 }
 
+func canWalk(level *Level, x, y int) bool {
+	t := level.Map[y][x]
+	switch t {
+	case StoneWall, ClosedDoor, Blank:
+		return false
+	default:
+		return true
+	}
+}
+
+func checkDoor(level *Level, x, y int) {
+	t := level.Map[y][x]
+	if t == ClosedDoor {
+		level.Map[y][x] = OpenDoor
+	}
+}
+
+func handleInput(level *Level, input *Input) {
+	p := level.Player
+	switch input.Typ {
+	case Up:
+		if canWalk(level, p.X, p.Y-1) {
+			level.Player.Y--
+		} else {
+			checkDoor(level, p.X, p.Y-1)
+		}
+	case Down:
+		if canWalk(level, p.X, p.Y+1) {
+			level.Player.Y++
+		} else {
+			checkDoor(level, p.X, p.Y+1)
+		}
+	case Left:
+		if canWalk(level, p.X-1, p.Y) {
+			level.Player.X--
+		} else {
+			checkDoor(level, p.X-1, p.Y)
+		}
+	case Right:
+		if canWalk(level, p.X+1, p.Y) {
+			level.Player.X++
+		} else {
+			checkDoor(level, p.X+1, p.Y)
+		}
+	}
+}
+
 func Run(ui GameUI) {
+	fmt.Println("Starting...")
 	level := loadLevelFromFile("game/maps/level1.map")
 
 	for {
-		_ = ui.DrawThenGetInput(level)
-		//do something with the input
+		ui.Draw(level)
+		input := ui.GetInput()
+
+		if input != nil && input.Typ == Quit {
+			return
+		}
+
+		handleInput(level, input)
+
 	}
 }

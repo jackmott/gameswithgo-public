@@ -25,6 +25,76 @@ type BaseNode struct {
 	Children []Node
 }
 
+func Optimize(node Node) {
+
+	//*** Compress constant expressions
+
+	// See how many of the children are constants
+	constantCount := 0
+	for _, child := range node.GetChildren() {
+		switch child.(type) {
+		case *OpConstant:
+			constantCount++
+		}
+	}
+
+	// If all of the children are constants, eval and replace
+	if constantCount == len(node.GetChildren()) && constantCount > 0 {
+		v := node.Eval(0, 0)
+		newConstant := NewOpConstant()
+		newConstant.value = v
+		ReplaceNode(node, newConstant)
+	} else {
+		for _, child := range node.GetChildren() {
+			Optimize(child)
+		}
+	}
+
+	//**** Replace Redundant operations (Abs Abs, Floor Floor, etc)
+	switch node.(type) {
+	case *OpAbs: // redundant
+		switch node.GetChildren()[0].(type) {
+		case *OpAbs, *OpNegate:
+			ReplaceNode(node.GetChildren()[0], node.GetChildren()[0].GetChildren()[0])
+		case *OpSquare:
+			ReplaceNode(node, node.GetChildren()[0])
+		}
+	case *OpCeil, *OpFloor: // redundant
+		switch node.GetChildren()[0].(type) {
+		case *OpCeil, *OpFloor:
+			ReplaceNode(node, node.GetChildren()[0])
+		}
+	case *OpWrap: // redundant
+		switch node.GetChildren()[0].(type) {
+		case *OpWrap:
+			ReplaceNode(node.GetChildren()[0], node.GetChildren()[0].GetChildren()[0])
+		}
+	case *OpNegate: //double negate is a noop, remove it entirely
+		switch node.GetChildren()[0].(type) {
+		case *OpNegate:
+			p := node.GetParent()
+			for i, pChild := range p.GetChildren() {
+				if pChild == node {
+					ReplaceNode(p.GetChildren()[i], node.GetChildren()[0].GetChildren()[0])
+				}
+			}
+		}
+	case *OpClip: // Clip Y Y = Y, Clip X X = X
+		switch node.GetChildren()[0].(type) {
+		case *OpX:
+			switch node.GetChildren()[1].(type) {
+			case *OpX:
+				ReplaceNode(node, node.GetChildren()[0])
+			}
+		case *OpY:
+			switch node.GetChildren()[1].(type) {
+			case *OpY:
+				ReplaceNode(node, node.GetChildren()[0])
+			}
+		}
+	}
+}
+
 func CopyTree(node Node, parent Node) Node {
 	copy := reflect.New(reflect.ValueOf(node).Elem().Type()).Interface().(Node)
 	switch n := node.(type) {

@@ -340,8 +340,24 @@ func main() {
 		}
 		fileStr := string(fileBytes)
 		pictureNode := BeginLexing(fileStr)
+		fmt.Println("Count before:", pictureNode.NodeCount())
+		fmt.Println(pictureNode)
+		i := 0
+		for {
+			i++
+			countBefore := pictureNode.NodeCount()
+			Optimize(pictureNode)
+			countAfter := pictureNode.NodeCount()
+			if countAfter == countBefore {
+				break
+			}
+		}
+		fmt.Println("Count after ", i, "passes:", pictureNode.NodeCount())
+		fmt.Println(pictureNode)
 		p := &picture{pictureNode.GetChildren()[0], pictureNode.GetChildren()[1], pictureNode.GetChildren()[2]}
+		start := time.Now()
 		pixels := aptToPixels(p, winWidth, winHeight)
+		fmt.Println("elapsed:", time.Since(start).Seconds())
 		tex := pixelsToTexture(renderer, pixels, winWidth, winHeight)
 		state.zoom = true
 		state.zoomImage = tex
