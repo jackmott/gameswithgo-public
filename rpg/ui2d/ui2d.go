@@ -201,8 +201,13 @@ func (ui *ui) Draw(level *game.Level) {
 
 		}
 	}
-	//21,59
-	ui.renderer.Copy(ui.textureAtlas, &sdl.Rect{21 * 32, 59 * 32, 32, 32}, &sdl.Rect{int32(level.Player.X)*32 + offsetX, int32(level.Player.Y)*32 + offsetY, 32, 32})
+
+	for pos, monster := range level.Monsters {
+		monsterSrcRect := ui.textureIndex[game.Tile(monster.Rune)][0]
+		ui.renderer.Copy(ui.textureAtlas, &monsterSrcRect, &sdl.Rect{int32(pos.X)*32 + offsetX, int32(pos.Y)*32 + offsetY, 32, 32})
+	}
+	playerSrcRect := ui.textureIndex['@'][0]
+	ui.renderer.Copy(ui.textureAtlas, &playerSrcRect, &sdl.Rect{int32(level.Player.X)*32 + offsetX, int32(level.Player.Y)*32 + offsetY, 32, 32})
 	ui.renderer.Present()
 
 }
