@@ -13,8 +13,8 @@ func NewRat(p Pos) *Monster {
 	monster.Pos = p
 	monster.Rune = 'R'
 	monster.Name = "Rat"
-	monster.Hitpoints = 5
-	monster.Strength = 5
+	monster.Hitpoints = 500
+	monster.Strength = 0
 	monster.Speed = 2.0
 	monster.ActionPoints = 0.0
 	return monster
@@ -25,8 +25,8 @@ func NewSpider(p Pos) *Monster {
 	monster.Pos = p
 	monster.Rune = 'S'
 	monster.Name = "Spider"
-	monster.Hitpoints = 10
-	monster.Strength = 10
+	monster.Hitpoints = 1000
+	monster.Strength = 0
 	monster.Speed = 1.0
 	monster.ActionPoints = 0.0
 	return monster

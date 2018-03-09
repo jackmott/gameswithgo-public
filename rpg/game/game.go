@@ -79,6 +79,7 @@ type Level struct {
 	Map      [][]Tile
 	Player   *Player
 	Monsters map[Pos]*Monster
+	Events   []string
 	Debug    map[Pos]bool
 }
 
@@ -139,6 +140,7 @@ func loadLevelFromFile(filename string) *Level {
 		index++
 	}
 	level := &Level{}
+	level.Events = make([]string, 0)
 	level.Player = &Player{}
 	// TODO where should we initialize the player?
 	level.Player.Strength = 5
@@ -230,6 +232,7 @@ func (player *Player) Move(to Pos, level *Level) {
 	} else {
 		Attack(level.Player, monster)
 		fmt.Println("Player Attacked Monster")
+		level.Events = append(level.Events, "Player Attacked Monster")
 		fmt.Println(level.Player.Hitpoints, monster.Hitpoints)
 		if monster.Hitpoints <= 0 {
 			delete(level.Monsters, monster.Pos)
