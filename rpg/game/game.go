@@ -1,3 +1,8 @@
+// TODO On Stream  ** Starting Soon **
+// - Make a simple Event display UI, remove old events, put more stuff in the events
+// - Fix quick keypress bug that occurs with many monsters
+// - Make monsters route around other monsters
+
 package game
 
 import (
@@ -5,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	_ "strconv"
 )
 
 type Game struct {
@@ -80,6 +86,7 @@ type Level struct {
 	Player   *Player
 	Monsters map[Pos]*Monster
 	Events   []string
+	EventPos int
 	Debug    map[Pos]bool
 }
 
@@ -114,10 +121,14 @@ func (c *Character) GetAttackPower() int {
 func Attack(a1, a2 Attackable) {
 	a1.SetActionPoints(a1.GetActionPoints() - 1)
 	a2.SetHitpoints(a2.GetHitpoints() - a1.GetAttackPower())
+}
 
-	if a2.GetHitpoints() > 0 {
-		a2.SetActionPoints(a2.GetActionPoints() - 1)
-		a1.SetHitpoints(a1.GetHitpoints() - a2.GetAttackPower())
+func (level *Level) AddEvent(event string) {
+	level.Events[level.EventPos] = event
+
+	level.EventPos++
+	if level.EventPos == len(level.Events) {
+		level.EventPos = 0
 	}
 }
 
@@ -140,7 +151,7 @@ func loadLevelFromFile(filename string) *Level {
 		index++
 	}
 	level := &Level{}
-	level.Events = make([]string, 0)
+	level.Events = make([]string, 10)
 	level.Player = &Player{}
 	// TODO where should we initialize the player?
 	level.Player.Strength = 5
@@ -229,20 +240,22 @@ func (player *Player) Move(to Pos, level *Level) {
 	monster, exists := level.Monsters[to]
 	if !exists {
 		player.Pos = to
-	} else {
-		Attack(level.Player, monster)
-		fmt.Println("Player Attacked Monster")
-		level.Events = append(level.Events, "Player Attacked Monster")
-		fmt.Println(level.Player.Hitpoints, monster.Hitpoints)
-		if monster.Hitpoints <= 0 {
-			delete(level.Monsters, monster.Pos)
-		}
-		if level.Player.Hitpoints <= 0 {
-			fmt.Println("YOU DIED")
-			panic("You Died") // exit properly?
-
-		}
+		return
 	}
+	Attack(level.Player, monster)
+	fmt.Println("Player Attacked Monster")
+	level.AddEvent("Player Attacked Monster")
+	fmt.Println(level.Player.Hitpoints, monster.Hitpoints)
+	if monster.Hitpoints <= 0 {
+		level.AddEvent("Player Kills " + monster.Name)
+		delete(level.Monsters, monster.Pos)
+	}
+	if level.Player.Hitpoints <= 0 {
+		fmt.Println("YOU DIED")
+		panic("You Died") // exit properly?
+
+	}
+
 }
 
 func (game *Game) handleInput(input *Input) {
@@ -398,6 +411,7 @@ func (level *Level) astar(start Pos, goal Pos) []Pos {
 func (game *Game) Run() {
 	fmt.Println("Starting...")
 
+	count := 0
 	for _, lchan := range game.LevelChans {
 		lchan <- game.Level
 	}
@@ -408,6 +422,10 @@ func (game *Game) Run() {
 		}
 
 		game.handleInput(input)
+
+		//game.Level.AddEvent("move:" + strconv.Itoa(count))
+		count++
+
 		for _, monster := range game.Level.Monsters {
 			monster.Update(game.Level)
 		}

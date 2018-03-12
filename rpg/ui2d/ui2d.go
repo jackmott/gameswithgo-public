@@ -31,6 +31,8 @@ type ui struct {
 	fontMedium        *ttf.Font
 	fontLarge         *ttf.Font
 
+	eventBackground *sdl.Texture
+
 	str2TexSmall  map[string]*sdl.Texture
 	str2TexMedium map[string]*sdl.Texture
 	str2TexLarge  map[string]*sdl.Texture
@@ -73,7 +75,7 @@ func NewUI(inputChan chan *game.Input, levelChan chan *game.Level) *ui {
 	ui.centerX = -1
 	ui.centerY = -1
 
-	ui.fontSmall, err = ttf.OpenFont("ui2d/assets/gothic.ttf", 24)
+	ui.fontSmall, err = ttf.OpenFont("ui2d/assets/gothic.ttf", 18)
 	if err != nil {
 		panic(err)
 	}
@@ -87,6 +89,9 @@ func NewUI(inputChan chan *game.Input, levelChan chan *game.Level) *ui {
 	if err != nil {
 		panic(err)
 	}
+
+	ui.eventBackground = ui.GetSinglePixelTex(sdl.Color{0, 0, 0, 128})
+	ui.eventBackground.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 	return ui
 }
@@ -293,14 +298,52 @@ func (ui *ui) Draw(level *game.Level) {
 	playerSrcRect := ui.textureIndex['@'][0]
 	ui.renderer.Copy(ui.textureAtlas, &playerSrcRect, &sdl.Rect{int32(level.Player.X)*32 + offsetX, int32(level.Player.Y)*32 + offsetY, 32, 32})
 
-	for i, event := range level.Events {
-		tex := ui.stringToTexture(event, sdl.Color{255, 0, 0, 0}, FontLarge)
-		_, _, w, h, _ := tex.Query()
-		ui.renderer.Copy(tex, nil, &sdl.Rect{0, int32(i * 64), w, h})
+	textStart := int32(float64(ui.winHeight) * .75)
+	textWidth := int32(float64(ui.winWidth) * .25)
+	//TODO scroll from bottom ups
+	//TODO add a border/background
+
+	ui.renderer.Copy(ui.eventBackground, nil, &sdl.Rect{0, textStart, textWidth, int32(ui.winHeight) - textStart})
+
+	i := level.EventPos
+	for {
+		event := level.Events[i]
+		if event != "" {
+			tex := ui.stringToTexture(event, sdl.Color{255, 0, 0, 0}, FontSmall)
+			_, _, w, h, _ := tex.Query()
+			ui.renderer.Copy(tex, nil, &sdl.Rect{0, int32(i*18) + textStart, w, h})
+		}
+		i = (i + 1) % (len(level.Events))
+		if i == level.EventPos {
+			break
+		}
 	}
 
 	ui.renderer.Present()
 
+}
+
+func (ui *ui) keyDownOnce(key uint8) bool {
+	return ui.keyboardState[key] == 1 && ui.prevKeyboardState[key] == 0
+}
+
+// Check for key pressed then released
+func (ui *ui) keyPressed(key uint8) bool {
+	return ui.keyboardState[key] == 0 && ui.prevKeyboardState[key] == 1
+}
+
+func (ui *ui) GetSinglePixelTex(color sdl.Color) *sdl.Texture {
+	tex, err := ui.renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STATIC, 1, 1)
+	if err != nil {
+		panic(err)
+	}
+	pixels := make([]byte, 4)
+	pixels[0] = color.R
+	pixels[1] = color.G
+	pixels[2] = color.B
+	pixels[3] = color.A
+	tex.Update(nil, pixels, 4)
+	return tex
 }
 
 func (ui *ui) Run() {
@@ -317,6 +360,7 @@ func (ui *ui) Run() {
 			}
 		}
 
+		// Suspect quick keypresses sometimes cause channel gridlock
 		select {
 		case newLevel, ok := <-ui.levelChan:
 			if ok {
@@ -328,20 +372,18 @@ func (ui *ui) Run() {
 		// TODO Make a function to ask "has a key been pressed"
 		if sdl.GetKeyboardFocus() == ui.window || sdl.GetMouseFocus() == ui.window {
 			var input game.Input
-			if ui.keyboardState[sdl.SCANCODE_UP] == 1 && ui.prevKeyboardState[sdl.SCANCODE_UP] == 0 {
+
+			if ui.keyDownOnce(sdl.SCANCODE_UP) {
 				input.Typ = game.Up
 			}
-			if ui.keyboardState[sdl.SCANCODE_DOWN] == 1 && ui.prevKeyboardState[sdl.SCANCODE_DOWN] == 0 {
+			if ui.keyDownOnce(sdl.SCANCODE_DOWN) {
 				input.Typ = game.Down
 			}
-			if ui.keyboardState[sdl.SCANCODE_LEFT] == 1 && ui.prevKeyboardState[sdl.SCANCODE_LEFT] == 0 {
+			if ui.keyDownOnce(sdl.SCANCODE_LEFT) {
 				input.Typ = game.Left
 			}
-			if ui.keyboardState[sdl.SCANCODE_RIGHT] == 1 && ui.prevKeyboardState[sdl.SCANCODE_RIGHT] == 0 {
+			if ui.keyDownOnce(sdl.SCANCODE_RIGHT) {
 				input.Typ = game.Right
-			}
-			if ui.keyboardState[sdl.SCANCODE_S] == 1 && ui.prevKeyboardState[sdl.SCANCODE_S] == 0 {
-				input.Typ = game.Search
 			}
 
 			for i, v := range ui.keyboardState {
