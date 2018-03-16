@@ -1,7 +1,5 @@
 package game
 
-import "fmt"
-
 type Monster struct {
 	Character
 }
@@ -15,6 +13,7 @@ func NewRat(p Pos) *Monster {
 	monster.Strength = 0
 	monster.Speed = 2.0
 	monster.ActionPoints = 0.0
+	monster.SightRange = 10
 	return monster
 }
 
@@ -24,9 +23,10 @@ func NewSpider(p Pos) *Monster {
 	monster.Rune = 'S'
 	monster.Name = "Spider"
 	monster.Hitpoints = 1000
-	monster.Strength = 0
+	monster.Strength = 5
 	monster.Speed = 1.0
 	monster.ActionPoints = 0.0
+	monster.SightRange = 10
 	return monster
 }
 
@@ -67,14 +67,11 @@ func (m *Monster) Move(to Pos, level *Level) {
 	}
 
 	if to == level.Player.Pos {
-		level.AddEvent(m.Name + " Attacks Player!")
-		Attack(m, level.Player)
+		level.Attack(&m.Character, &level.Player.Character)
 		if m.Hitpoints <= 0 {
-			level.AddEvent("You killed the " + m.Name)
 			delete(level.Monsters, m.Pos)
 		}
 		if level.Player.Hitpoints <= 0 {
-			fmt.Println("you died!")
 			panic("ded")
 		}
 	}
