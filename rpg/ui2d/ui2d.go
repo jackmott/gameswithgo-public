@@ -273,24 +273,34 @@ func (ui *ui) Draw(level *game.Level) {
 	ui.r.Seed(1)
 	for y, row := range level.Map {
 		for x, tile := range row {
-			if tile.Rune != game.Blank && tile.Visible {
+			if tile.Rune != game.Blank {
 				srcRects := ui.textureIndex[tile.Rune]
 				srcRect := srcRects[ui.r.Intn(len(srcRects))]
-				dstRect := sdl.Rect{int32(x*32) + offsetX, int32(y*32) + offsetY, 32, 32}
+				if tile.Visible || tile.Seen {
+					dstRect := sdl.Rect{int32(x*32) + offsetX, int32(y*32) + offsetY, 32, 32}
+					pos := game.Pos{x, y}
+					if level.Debug[pos] {
+						ui.textureAtlas.SetColorMod(128, 0, 0)
+					} else if tile.Seen && !tile.Visible {
+						ui.textureAtlas.SetColorMod(128, 128, 128)
+					} else {
+						ui.textureAtlas.SetColorMod(255, 255, 255)
+					}
+					ui.renderer.Copy(ui.textureAtlas, &srcRect, &dstRect)
 
-				pos := game.Pos{x, y}
-				if level.Debug[pos] {
-					ui.textureAtlas.SetColorMod(128, 0, 0)
-				} else {
-					ui.textureAtlas.SetColorMod(255, 255, 255)
+					if tile.OverlayRune != game.Blank {
+						fmt.Println("Overlay")
+						// Todo what if there are multiple variants for overlay images?
+						srcRect := ui.textureIndex[tile.OverlayRune][0]
+						ui.renderer.Copy(ui.textureAtlas, &srcRect, &dstRect)
+					}
+
 				}
-				ui.renderer.Copy(ui.textureAtlas, &srcRect, &dstRect)
-
 			}
 
 		}
 	}
-
+	ui.textureAtlas.SetColorMod(255, 255, 255)
 	for pos, monster := range level.Monsters {
 		if level.Map[pos.Y][pos.X].Visible {
 			monsterSrcRect := ui.textureIndex[monster.Rune][0]
