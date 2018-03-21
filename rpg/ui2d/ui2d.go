@@ -256,6 +256,7 @@ func (ui *ui) Draw(level *game.Level) {
 	}
 
 	limit := 5
+	//TODO make the centering smarter so portals work
 	if level.Player.X > ui.centerX+limit {
 		ui.centerX++
 	} else if level.Player.X < ui.centerX-limit {
@@ -289,7 +290,6 @@ func (ui *ui) Draw(level *game.Level) {
 					ui.renderer.Copy(ui.textureAtlas, &srcRect, &dstRect)
 
 					if tile.OverlayRune != game.Blank {
-						fmt.Println("Overlay")
 						// Todo what if there are multiple variants for overlay images?
 						srcRect := ui.textureIndex[tile.OverlayRune][0]
 						ui.renderer.Copy(ui.textureAtlas, &srcRect, &dstRect)
@@ -312,8 +312,6 @@ func (ui *ui) Draw(level *game.Level) {
 
 	textStart := int32(float64(ui.winHeight) * .68)
 	textWidth := int32(float64(ui.winWidth) * .25)
-	//TODO scroll from bottom ups
-	//TODO add a border/background
 
 	ui.renderer.Copy(ui.eventBackground, nil, &sdl.Rect{0, textStart, textWidth, int32(ui.winHeight) - textStart})
 
@@ -384,7 +382,6 @@ func (ui *ui) Run() {
 		default:
 		}
 
-		// TODO Make a function to ask "has a key been pressed"
 		if sdl.GetKeyboardFocus() == ui.window || sdl.GetMouseFocus() == ui.window {
 			var input game.Input
 

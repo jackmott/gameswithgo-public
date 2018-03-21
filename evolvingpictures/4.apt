@@ -1,0 +1,4 @@
+( Picture
+( Atan ( * ( Log2 ( Sin ( + ( / ( Atan2 X Y ) -0.665268183 ) ( Ceil ( Cos Y ) ) ) ) ) ( - ( Square ( Atan ( Sin ( Square ( Lerp Y ( Ceil ( Clip X -0.965345979 ) ) ( Floor ( SimplexNoise Y Y ) ) ) ) ) ) ) (Wrap ( Log2 ( - ( / -0.113403499 ( Atan -0.978293955 ) ) ( + ( Sin -0.581047893 ) 0.075692058 ) ) )) ) ) )
+( SimplexNoise ( Sin ( Lerp X ( Atan2 0.854381442 ( SimplexNoise 0.219062328 -0.349060118 ) ) ( Cos Y ) ) ) ( - ( Sin (Wrap ( / Y ( Lerp -0.442184865 X X ) )) ) ( * ( Abs ( Clip 0.920261860 X ) ) ( / X X ) ) ) )
+( SimplexNoise ( Clip ( Abs ( Cos Y ) ) ( Clip ( * Y Y ) Y ) ) ( Atan ( SimplexNoise ( Lerp ( Clip ( Abs 0.409879565 ) X ) -0.251607060 X ) ( Lerp X Y X ) ) ) ) )
