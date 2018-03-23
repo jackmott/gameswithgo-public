@@ -1,3 +1,8 @@
+// Keep working on sound effects?
+// Make visibility look nicer
+// Add puzzles?
+// Items and inventory? keys/chests/etc
+
 package main
 
 import (

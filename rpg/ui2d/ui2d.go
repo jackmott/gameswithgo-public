@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/jackmott/rpg/game"
+	"github.com/veandco/go-sdl2/mix"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 	"image/png"
@@ -13,7 +14,19 @@ import (
 	"strings"
 )
 
+type sounds struct {
+	openingDoors []*mix.Chunk
+	footsteps    []*mix.Chunk
+}
+
+func playRandomSound(chunks []*mix.Chunk, volume int) {
+	chunkIndex := rand.Intn(len(chunks))
+	chunks[chunkIndex].Volume(volume)
+	chunks[chunkIndex].Play(-1, 0)
+}
+
 type ui struct {
+	sounds            sounds
 	winWidth          int
 	winHeight         int
 	renderer          *sdl.Renderer
@@ -92,6 +105,38 @@ func NewUI(inputChan chan *game.Input, levelChan chan *game.Level) *ui {
 
 	ui.eventBackground = ui.GetSinglePixelTex(sdl.Color{0, 0, 0, 128})
 	ui.eventBackground.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+	//if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
+	err = mix.OpenAudio(22050, mix.DEFAULT_FORMAT, 2, 4096)
+	if err != nil {
+		panic(err)
+	}
+	mus, err := mix.LoadMUS("ui2d/assets/ambient.ogg")
+	if err != nil {
+		panic(err)
+	}
+	mus.Play(-1)
+
+	footstepBase := "ui2d/assets/footstep0"
+	for i := 0; i < 10; i++ {
+		footstepFile := footstepBase + strconv.Itoa(i) + ".ogg"
+		footstepSound, err := mix.LoadWAV(footstepFile)
+		if err != nil {
+			panic(err)
+		}
+		ui.sounds.footsteps = append(ui.sounds.footsteps, footstepSound)
+	}
+
+	doorOpen1, err := mix.LoadWAV("ui2d/assets/doorOpen_1.ogg")
+	if err != nil {
+		panic(err)
+	}
+	ui.sounds.openingDoors = append(ui.sounds.openingDoors, doorOpen1)
+	doorOpen2, err := mix.LoadWAV("ui2d/assets/doorOpen_2.ogg")
+	if err != nil {
+		panic(err)
+	}
+	ui.sounds.openingDoors = append(ui.sounds.openingDoors, doorOpen2)
 
 	return ui
 }
@@ -246,6 +291,12 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	err = mix.Init(mix.INIT_OGG)
+	//SDL Bug here, ignoring error
+	/*if err != nil {
+		panic(err)
+	}*/
 }
 
 func (ui *ui) Draw(level *game.Level) {
@@ -256,15 +307,18 @@ func (ui *ui) Draw(level *game.Level) {
 	}
 
 	limit := 5
-	//TODO make the centering smarter so portals work
 	if level.Player.X > ui.centerX+limit {
-		ui.centerX++
+		diff := level.Player.X - (ui.centerX + limit)
+		ui.centerX += diff
 	} else if level.Player.X < ui.centerX-limit {
-		ui.centerX--
+		diff := (ui.centerX - limit) - level.Player.X
+		ui.centerX -= diff
 	} else if level.Player.Y > ui.centerY+limit {
-		ui.centerY++
+		diff := level.Player.Y - (ui.centerY + limit)
+		ui.centerY += diff
 	} else if level.Player.Y < ui.centerY-limit {
-		ui.centerY--
+		diff := (ui.centerY - limit) - level.Player.Y
+		ui.centerY -= diff
 	}
 
 	offsetX := int32((ui.winWidth / 2) - ui.centerX*32)
@@ -377,6 +431,14 @@ func (ui *ui) Run() {
 		select {
 		case newLevel, ok := <-ui.levelChan:
 			if ok {
+				switch newLevel.LastEvent {
+				case game.Move:
+					playRandomSound(ui.sounds.footsteps, 10)
+				case game.DoorOpen:
+					playRandomSound(ui.sounds.openingDoors, 32)
+				default:
+					//add more sounds
+				}
 				ui.Draw(newLevel)
 			}
 		default:
