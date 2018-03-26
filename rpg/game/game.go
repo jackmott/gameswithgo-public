@@ -255,7 +255,7 @@ func (game *Game) loadWorldFile() {
 		if rowIndex == 0 {
 			game.CurrentLevel = game.Levels[row[0]]
 			if game.CurrentLevel == nil {
-				fmt.Println("couldn't find currentlevel name in world file")
+				fmt.Println("couldn't find currentlevel name in world file:", row[0])
 				panic(nil)
 			}
 			continue
@@ -317,7 +317,8 @@ func loadLevels() map[string]*Level {
 	for _, filename := range filenames {
 		fmt.Println("loading:", filename)
 		extIndex := strings.LastIndex(filename, ".map")
-		lastSlashIndex := strings.LastIndex(filename, "\\")
+		lastSlashIndex := int(math.Max(float64(strings.LastIndex(filename, "\\")), float64(strings.LastIndex(filename, "/"))))
+
 		levelName := filename[lastSlashIndex+1 : extIndex]
 		fmt.Println("name:", levelName)
 		file, err := os.Open(filename)
@@ -407,6 +408,7 @@ func loadLevels() map[string]*Level {
 				}
 			}
 		}
+		fmt.Println(levelName)
 		levels[levelName] = level
 	}
 	return levels
