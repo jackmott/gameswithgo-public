@@ -30,6 +30,16 @@ func NewSpider(p Pos) *Monster {
 	return monster
 }
 
+func (m *Monster) Kill(level *Level) {
+	delete(level.Monsters, m.Pos)
+	groundItems := level.Items[m.Pos]
+	for _, item := range m.Items {
+		item.Pos = m.Pos
+		groundItems = append(groundItems, item)
+	}
+	level.Items[m.Pos] = groundItems
+}
+
 func (m *Monster) Update(level *Level) {
 	m.ActionPoints += m.Speed
 	playerPos := level.Player.Pos

@@ -326,6 +326,7 @@ func (ui *ui) Draw(level *game.Level) {
 
 	ui.renderer.Clear()
 	ui.r.Seed(1)
+	// Render Map Tiles
 	for y, row := range level.Map {
 		for x, tile := range row {
 			if tile.Rune != game.Blank {
@@ -355,20 +356,34 @@ func (ui *ui) Draw(level *game.Level) {
 		}
 	}
 	ui.textureAtlas.SetColorMod(255, 255, 255)
+
+	// Render Monsters
 	for pos, monster := range level.Monsters {
 		if level.Map[pos.Y][pos.X].Visible {
 			monsterSrcRect := ui.textureIndex[monster.Rune][0]
 			ui.renderer.Copy(ui.textureAtlas, &monsterSrcRect, &sdl.Rect{int32(pos.X)*32 + offsetX, int32(pos.Y)*32 + offsetY, 32, 32})
 		}
 	}
+
+	// Render Items
+	for pos, items := range level.Items {
+		if level.Map[pos.Y][pos.X].Visible {
+			for _, item := range items {
+				itemSrcRect := ui.textureIndex[item.Rune][0]
+				ui.renderer.Copy(ui.textureAtlas, &itemSrcRect, &sdl.Rect{int32(pos.X)*32 + offsetX, int32(pos.Y)*32 + offsetY, 32, 32})
+			}
+		}
+	}
+
+	// Render Player
 	playerSrcRect := ui.textureIndex['@'][0]
 	ui.renderer.Copy(ui.textureAtlas, &playerSrcRect, &sdl.Rect{int32(level.Player.X)*32 + offsetX, int32(level.Player.Y)*32 + offsetY, 32, 32})
 
+	// Event UI Begin
 	textStart := int32(float64(ui.winHeight) * .68)
 	textWidth := int32(float64(ui.winWidth) * .25)
 
 	ui.renderer.Copy(ui.eventBackground, nil, &sdl.Rect{0, textStart, textWidth, int32(ui.winHeight) - textStart})
-
 	i := level.EventPos
 	count := 0
 	_, fontSizeY, _ := ui.fontSmall.SizeUTF8("A")
@@ -384,6 +399,14 @@ func (ui *ui) Draw(level *game.Level) {
 		if i == level.EventPos {
 			break
 		}
+	}
+	// Event UI End
+
+	// Inventory UI
+	items := level.Items[level.Player.Pos]
+	for i, item := range items {
+		itemSrcRect := ui.textureIndex[item.Rune][0]
+		ui.renderer.Copy(ui.textureAtlas, &itemSrcRect, &sdl.Rect{int32(ui.winWidth - 32 - i*32), int32(ui.winHeight - 32), 32, 32})
 	}
 
 	ui.renderer.Present()
@@ -449,15 +472,14 @@ func (ui *ui) Run() {
 
 			if ui.keyDownOnce(sdl.SCANCODE_UP) {
 				input.Typ = game.Up
-			}
-			if ui.keyDownOnce(sdl.SCANCODE_DOWN) {
+			} else if ui.keyDownOnce(sdl.SCANCODE_DOWN) {
 				input.Typ = game.Down
-			}
-			if ui.keyDownOnce(sdl.SCANCODE_LEFT) {
+			} else if ui.keyDownOnce(sdl.SCANCODE_LEFT) {
 				input.Typ = game.Left
-			}
-			if ui.keyDownOnce(sdl.SCANCODE_RIGHT) {
+			} else if ui.keyDownOnce(sdl.SCANCODE_RIGHT) {
 				input.Typ = game.Right
+			} else if ui.keyDownOnce(sdl.SCANCODE_T) {
+				input.Typ = game.TakeAll
 			}
 
 			for i, v := range ui.keyboardState {
