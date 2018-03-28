@@ -44,6 +44,7 @@ const (
 	Left
 	Right
 	TakeAll
+	TakeItem
 	QuitGame
 	CloseWindow
 	Search //temporary
@@ -51,6 +52,7 @@ const (
 
 type Input struct {
 	Typ          InputType
+	Item         *Item
 	LevelChannel chan *Level
 }
 
@@ -109,6 +111,7 @@ const (
 	Attack
 	Hit
 	Portal
+	PickUp
 )
 
 type Level struct {
@@ -527,6 +530,10 @@ func (game *Game) handleInput(input *Input) {
 		for _, item := range level.Items[p.Pos] {
 			level.MoveItem(item, &level.Player.Character)
 		}
+		level.LastEvent = PickUp
+	case TakeItem:
+		level.MoveItem(input.Item, &level.Player.Character)
+		level.LastEvent = PickUp
 	case CloseWindow:
 		close(input.LevelChannel)
 		chanIndex := 0

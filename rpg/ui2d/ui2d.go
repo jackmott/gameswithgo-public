@@ -14,6 +14,24 @@ import (
 	"strings"
 )
 
+type mouseState struct {
+	leftButton  bool
+	rightButton bool
+	pos         game.Pos
+}
+
+func getMouseState() mouseState {
+	mouseX, mouseY, mouseButtonState := sdl.GetMouseState()
+	leftButton := mouseButtonState & sdl.ButtonLMask()
+	rightButton := mouseButtonState & sdl.ButtonRMask()
+	var result mouseState
+	result.pos = game.Pos{int(mouseX), int(mouseY)}
+	result.leftButton = !(leftButton == 0)
+	result.rightButton = !(rightButton == 0)
+
+	return result
+}
+
 type sounds struct {
 	openingDoors []*mix.Chunk
 	footsteps    []*mix.Chunk
@@ -25,7 +43,15 @@ func playRandomSound(chunks []*mix.Chunk, volume int) {
 	chunks[chunkIndex].Play(-1, 0)
 }
 
+type uiState int
+
+const (
+	UIMain uiState = iota
+	UIInventory
+)
+
 type ui struct {
+	state             uiState
 	sounds            sounds
 	winWidth          int
 	winHeight         int
@@ -44,7 +70,8 @@ type ui struct {
 	fontMedium        *ttf.Font
 	fontLarge         *ttf.Font
 
-	eventBackground *sdl.Texture
+	eventBackground           *sdl.Texture
+	groundInventoryBackground *sdl.Texture
 
 	str2TexSmall  map[string]*sdl.Texture
 	str2TexMedium map[string]*sdl.Texture
@@ -54,6 +81,7 @@ type ui struct {
 func NewUI(inputChan chan *game.Input, levelChan chan *game.Level) *ui {
 
 	ui := &ui{}
+	ui.state = UIMain
 	ui.str2TexSmall = make(map[string]*sdl.Texture)
 	ui.str2TexMedium = make(map[string]*sdl.Texture)
 	ui.str2TexLarge = make(map[string]*sdl.Texture)
@@ -105,6 +133,9 @@ func NewUI(inputChan chan *game.Input, levelChan chan *game.Level) *ui {
 
 	ui.eventBackground = ui.GetSinglePixelTex(sdl.Color{0, 0, 0, 128})
 	ui.eventBackground.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+	ui.groundInventoryBackground = ui.GetSinglePixelTex(sdl.Color{255, 0, 0, 128})
+	ui.groundInventoryBackground.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 	//if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
 	err = mix.OpenAudio(22050, mix.DEFAULT_FORMAT, 2, 4096)
@@ -299,6 +330,10 @@ func init() {
 	}*/
 }
 
+func (ui *ui) DrawInventory(level *game.Level) {
+	ui.renderer.Copy(ui.groundInventoryBackground, nil, &sdl.Rect{100, 100, 500, 500})
+}
+
 func (ui *ui) Draw(level *game.Level) {
 
 	if ui.centerX == -1 && ui.centerY == -1 {
@@ -403,14 +438,20 @@ func (ui *ui) Draw(level *game.Level) {
 	// Event UI End
 
 	// Inventory UI
+	groundInvStart := int32(float64(ui.winWidth) * .9)
+	groundInvWidth := int32(ui.winWidth) - groundInvStart
+	ui.renderer.Copy(ui.groundInventoryBackground, nil, &sdl.Rect{groundInvStart, int32(ui.winHeight - 32), groundInvWidth, int32(32)})
 	items := level.Items[level.Player.Pos]
 	for i, item := range items {
 		itemSrcRect := ui.textureIndex[item.Rune][0]
-		ui.renderer.Copy(ui.textureAtlas, &itemSrcRect, &sdl.Rect{int32(ui.winWidth - 32 - i*32), int32(ui.winHeight - 32), 32, 32})
+		ui.renderer.Copy(ui.textureAtlas, &itemSrcRect, ui.getGroundItemRect(i))
 	}
+	// Inventory UI END
 
-	ui.renderer.Present()
+}
 
+func (ui *ui) getGroundItemRect(i int) *sdl.Rect {
+	return &sdl.Rect{int32(ui.winWidth - 32 - i*32), int32(ui.winHeight - 32), 32, 32}
 }
 
 func (ui *ui) keyDownOnce(key uint8) bool {
@@ -436,7 +477,24 @@ func (ui *ui) GetSinglePixelTex(color sdl.Color) *sdl.Texture {
 	return tex
 }
 
+func (ui *ui) CheckItems(level *game.Level, prevMouseState, currentMouseState mouseState) *game.Item {
+	if !currentMouseState.leftButton && prevMouseState.leftButton {
+		fmt.Println("Got Click!  X,Y:", currentMouseState.pos)
+		items := level.Items[level.Player.Pos]
+		mousePos := currentMouseState.pos
+		for i, item := range items {
+			itemRect := ui.getGroundItemRect(i)
+			if itemRect.HasIntersection(&sdl.Rect{int32(mousePos.X), int32(mousePos.Y), 1, 1}) {
+				return item
+			}
+		}
+	}
+	return nil
+}
+
 func (ui *ui) Run() {
+	var newLevel *game.Level
+	prevMouseState := getMouseState()
 
 	for {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -449,10 +507,12 @@ func (ui *ui) Run() {
 				}
 			}
 		}
+		currentMouseState := getMouseState()
 
 		// Suspect quick keypresses sometimes cause channel gridlock
+		var ok bool
 		select {
-		case newLevel, ok := <-ui.levelChan:
+		case newLevel, ok = <-ui.levelChan:
 			if ok {
 				switch newLevel.LastEvent {
 				case game.Move:
@@ -462,13 +522,26 @@ func (ui *ui) Run() {
 				default:
 					//add more sounds
 				}
-				ui.Draw(newLevel)
+
 			}
 		default:
 		}
 
+		ui.Draw(newLevel)
+		if ui.state == UIInventory {
+			fmt.Println("Drawing Inventory")
+			ui.DrawInventory(newLevel)
+		}
+		ui.renderer.Present()
+
+		var input game.Input
+		item := ui.CheckItems(newLevel, prevMouseState, currentMouseState)
+		if item != nil {
+			input.Typ = game.TakeItem
+			input.Item = item
+		}
+
 		if sdl.GetKeyboardFocus() == ui.window || sdl.GetMouseFocus() == ui.window {
-			var input game.Input
 
 			if ui.keyDownOnce(sdl.SCANCODE_UP) {
 				input.Typ = game.Up
@@ -480,6 +553,13 @@ func (ui *ui) Run() {
 				input.Typ = game.Right
 			} else if ui.keyDownOnce(sdl.SCANCODE_T) {
 				input.Typ = game.TakeAll
+			} else if ui.keyDownOnce(sdl.SCANCODE_I) {
+				fmt.Println("I")
+				if ui.state == UIMain {
+					ui.state = UIInventory
+				} else {
+					ui.state = UIMain
+				}
 			}
 
 			for i, v := range ui.keyboardState {
@@ -490,6 +570,7 @@ func (ui *ui) Run() {
 				ui.inputChan <- &input
 			}
 		}
+		prevMouseState = currentMouseState
 		sdl.Delay(10)
 
 	}
