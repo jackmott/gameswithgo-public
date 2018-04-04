@@ -75,6 +75,7 @@ type ui struct {
 
 	eventBackground           *sdl.Texture
 	groundInventoryBackground *sdl.Texture
+	slotBackground            *sdl.Texture
 
 	str2TexSmall  map[string]*sdl.Texture
 	str2TexMedium map[string]*sdl.Texture
@@ -142,6 +143,8 @@ func NewUI(inputChan chan *game.Input, levelChan chan *game.Level) *ui {
 
 	ui.groundInventoryBackground = ui.GetSinglePixelTex(sdl.Color{149, 84, 19, 200})
 	ui.groundInventoryBackground.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+	ui.slotBackground = ui.GetSinglePixelTex(sdl.Color{0, 0, 0, 0})
 
 	//if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
 	err = mix.OpenAudio(22050, mix.DEFAULT_FORMAT, 2, 4096)
@@ -336,47 +339,6 @@ func init() {
 	}*/
 }
 
-func (ui *ui) DrawInventory(level *game.Level) {
-
-	playerSrcRect := ui.textureIndex[level.Player.Rune][0]
-	invRect := ui.getInventoryRect()
-	ui.renderer.Copy(ui.groundInventoryBackground, nil, invRect)
-	ui.renderer.Copy(ui.textureAtlas, &playerSrcRect, &sdl.Rect{invRect.X + invRect.X/4, invRect.Y, invRect.W / 2, invRect.H / 2})
-
-	for i, item := range level.Player.Items {
-		itemSrcRect := ui.textureIndex[item.Rune][0]
-		if item == ui.draggedItem {
-			itemSize := int32(ItemSizeRatio * float32(ui.winWidth))
-			ui.renderer.Copy(ui.textureAtlas, &itemSrcRect, &sdl.Rect{int32(ui.currentMouseState.pos.X), int32(ui.currentMouseState.pos.Y), itemSize, itemSize})
-		} else {
-			ui.renderer.Copy(ui.textureAtlas, &itemSrcRect, ui.getInventoryItemRect(i))
-		}
-	}
-}
-
-func (ui *ui) getInventoryRect() *sdl.Rect {
-	invWidth := int32(float32(ui.winWidth) * 0.40)
-	invHeight := int32(float32(ui.winHeight) * 0.75)
-	offsetX := (int32(ui.winWidth) - invWidth) / 2
-	offsetY := (int32(ui.winHeight) - invHeight) / 2
-	return &sdl.Rect{offsetX, offsetY, invWidth, invHeight}
-}
-
-func (ui *ui) getInventoryItemRect(i int) *sdl.Rect {
-	invRect := ui.getInventoryRect()
-	itemSize := int32(ItemSizeRatio * float32(ui.winWidth))
-	return &sdl.Rect{invRect.X + int32(i)*itemSize, invRect.Y + invRect.H - itemSize, itemSize, itemSize}
-}
-
-func (ui *ui) CheckDroppedItem(level *game.Level) *game.Item {
-	invRect := ui.getInventoryRect()
-	mousePos := ui.currentMouseState.pos
-	if invRect.HasIntersection(&sdl.Rect{int32(mousePos.X), int32(mousePos.Y), 1, 1}) {
-		return nil
-	}
-	return ui.draggedItem
-}
-
 func (ui *ui) Draw(level *game.Level) {
 
 	if ui.centerX == -1 && ui.centerY == -1 {
@@ -523,33 +485,6 @@ func (ui *ui) GetSinglePixelTex(color sdl.Color) *sdl.Texture {
 	return tex
 }
 
-func (ui *ui) CheckInventoryItems(level *game.Level) *game.Item {
-	if ui.currentMouseState.leftButton {
-		mousePos := ui.currentMouseState.pos
-		for i, item := range level.Player.Items {
-			itemRect := ui.getInventoryItemRect(i)
-			if itemRect.HasIntersection(&sdl.Rect{int32(mousePos.X), int32(mousePos.Y), 1, 1}) {
-				return item
-			}
-		}
-	}
-	return nil
-}
-
-func (ui *ui) CheckGroundItems(level *game.Level) *game.Item {
-	if !ui.currentMouseState.leftButton && ui.prevMouseState.leftButton {
-		items := level.Items[level.Player.Pos]
-		mousePos := ui.currentMouseState.pos
-		for i, item := range items {
-			itemRect := ui.getGroundItemRect(i)
-			if itemRect.HasIntersection(&sdl.Rect{int32(mousePos.X), int32(mousePos.Y), 1, 1}) {
-				return item
-			}
-		}
-	}
-	return nil
-}
-
 func (ui *ui) Run() {
 	var newLevel *game.Level
 	ui.prevMouseState = getMouseState()
@@ -591,16 +526,24 @@ func (ui *ui) Run() {
 
 			//have we stopped dragging?
 			if ui.draggedItem != nil && !ui.currentMouseState.leftButton && ui.prevMouseState.leftButton {
-				item := ui.CheckDroppedItem(newLevel)
+
+				item := ui.CheckEquippedItem()
 				if item != nil {
-					input.Typ = game.DropItem
-					input.Item = ui.draggedItem
+					input.Typ = game.EquipItem
+					input.Item = item
 					ui.draggedItem = nil
 				}
-			}
-			if ui.currentMouseState.leftButton && ui.draggedItem != nil {
+				if ui.draggedItem != nil {
+					item := ui.CheckDroppedItem()
+					if item != nil {
+						input.Typ = game.DropItem
+						input.Item = item
+						ui.draggedItem = nil
+					}
+				}
 
-			} else {
+			}
+			if !ui.currentMouseState.leftButton || ui.draggedItem == nil {
 				ui.draggedItem = ui.CheckInventoryItems(newLevel)
 			}
 			ui.DrawInventory(newLevel)
