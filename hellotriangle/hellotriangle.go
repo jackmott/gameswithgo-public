@@ -37,14 +37,14 @@ func main() {
 		 void main()
 		 {
 			 FragColor =  vec4(1.0f, 0.0f, 0.0f, 1.0f);
-		 } `
+		 } ` + "\x00"
 
 	fmt.Println(fragmentShaderSource)
 	fragmentShader := gl.CreateShader(gl.FRAGMENT_SHADER)
 	csource, free := gl.Strs(fragmentShaderSource)
 	gl.ShaderSource(fragmentShader, 1, csource, nil)
-	gl.CompileShader(fragmentShader)
 	free()
+	gl.CompileShader(fragmentShader)
 	var status int32
 	gl.GetShaderiv(fragmentShader, gl.COMPILE_STATUS, &status)
 	if status == gl.FALSE {
@@ -62,7 +62,7 @@ func main() {
 		 void main() 
 		 {
 			 gl_Position = vec4(aPos.x,aPos.y,aPos.z,1.0);
-		 }`
+		 }` + "\x00"
 
 	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
 	csource, free = gl.Strs(vertexShaderSource)
