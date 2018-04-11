@@ -32,24 +32,34 @@ func main() {
 
 	fmt.Println("OpenGL Version", gogl.GetVersion())
 
-	shaderProgram, err := gogl.CreateProgram("shaders/hello.vert", "shaders/hello.frag")
+	shaderProgram, err := gogl.NewShader("shaders/hello.vert", "shaders/hello.frag")
 	if err != nil {
 		panic(err)
 	}
 
 	vertices := []float32{
-		-0.5, -0.5, 0.0,
-		0.5, -0.5, 0.0,
-		0.0, 0.5, 0.0}
+		0.5, 0.5, 0.0, 1.0, 1.0,
+		0.5, -0.5, 0.0, 1.0, 0.0,
+		-0.5, -0.5, 0.0, 0.0, 0.0,
+		-0.5, 0.5, 0.0, 0.0, 1.0}
+
+	indices := []uint32{
+		0, 1, 3, // triangle 1
+		1, 2, 3, // triangle 2
+	}
 
 	gogl.GenBindBuffer(gl.ARRAY_BUFFER)
 	VAO := gogl.GenBindVertexArray()
-
 	gogl.BufferDataFloat(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, nil)
-	gl.EnableVertexAttribArray(0)
-	gogl.UnbindVertexArray()
+	gogl.GenBindBuffer(gl.ELEMENT_ARRAY_BUFFER)
+	gogl.BufferDataInt(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
 
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 5*4, nil)
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
+	gl.EnableVertexAttribArray(1)
+	gogl.UnbindVertexArray()
+	var x float32 = 0.0
 	for {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event.(type) {
@@ -61,10 +71,13 @@ func main() {
 		gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gogl.UseProgram(shaderProgram)
+		shaderProgram.Use()
+		shaderProgram.SetFloat("x", x)
+		shaderProgram.SetFloat("y", 0.0)
 		gogl.BindVertexArray(VAO)
-		gl.DrawArrays(gl.TRIANGLES, 0, 3)
+		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, gl.PtrOffset(0))
 		window.GLSwap()
-		gogl.CheckShadersForChanges()
+		shaderProgram.CheckShaderForChanges()
+		x = x + .01
 	}
 }
