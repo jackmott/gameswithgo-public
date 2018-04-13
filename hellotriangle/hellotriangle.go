@@ -1,3 +1,7 @@
+// Make shader hotloading fail gracefully and retry
+// Make an attribpointer helper function
+// Make a texture
+
 package main
 
 import (
@@ -29,13 +33,16 @@ func main() {
 	defer window.Destroy()
 
 	gl.Init()
+	gogl.MglTest()
 
 	fmt.Println("OpenGL Version", gogl.GetVersion())
 
-	shaderProgram, err := gogl.NewShader("shaders/hello.vert", "shaders/hello.frag")
+	shaderProgram, err := gogl.NewShader("shaders/hello.vert", "shaders/quadtexture.frag")
 	if err != nil {
 		panic(err)
 	}
+
+	texture := gogl.LoadTextureAlpha("assets/tex.png")
 
 	vertices := []float32{
 		0.5, 0.5, 0.0, 1.0, 1.0,
@@ -74,6 +81,7 @@ func main() {
 		shaderProgram.Use()
 		shaderProgram.SetFloat("x", x)
 		shaderProgram.SetFloat("y", 0.0)
+		gogl.BindTexture(texture)
 		gogl.BindVertexArray(VAO)
 		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, gl.PtrOffset(0))
 		window.GLSwap()

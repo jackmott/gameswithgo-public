@@ -155,8 +155,8 @@ void main()
     vec2 star2pos = coord  + pos *.05;
     vec2 star3pos = coord + pos *.1; 
             
-    vec3 nebulaColor1 = hsv2rgb(vec3(.4+.005*sin(nebula1pos.x * 100.0 + nebula1pos.y), 0.5, .25));
-	vec3 nebulaColor2 = hsv2rgb(vec3(.9+.001*sin(nebula2pos.x * 60.0 + nebula2pos.y), 1., .25));
+    vec3 nebulaColor1 = hsv2rgb(vec3(.9+.005*sin(nebula1pos.x * 100.0 + nebula1pos.y), 0.5, .25));
+	vec3 nebulaColor2 = hsv2rgb(vec3(.1+.001*sin(nebula2pos.x * 60.0 + nebula2pos.y), 1., .25));
 
     result += fractalNebula(nebula1pos, nebulaColor1, 1.);
     result += fractalNebula(nebula2pos + vec2(5., 7.2), nebulaColor2, .5);
