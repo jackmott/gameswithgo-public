@@ -182,3 +182,9 @@ func UnbindVertexArray() {
 func UseProgram(programID ProgramID) {
 	gl.UseProgram(uint32(programID))
 }
+
+func TriangleNormal(p1, p2, p3 mgl32.Vec3) mgl32.Vec3 {
+	U := p2.Sub(p1)
+	V := p3.Sub(p1)
+	return U.Cross(V).Normalize()
+}
