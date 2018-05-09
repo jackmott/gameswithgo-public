@@ -330,7 +330,7 @@ func main() {
 
 		for _, controller := range controllerHandlers {
 			if controller != nil {
-				controllerAxis = controller.GetAxis(sdl.CONTROLLER_AXIS_LEFTY)
+				controllerAxis = controller.Axis(sdl.CONTROLLER_AXIS_LEFTY)
 			}
 		}
 
