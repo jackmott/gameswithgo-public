@@ -1,7 +1,8 @@
 package apt
 
 import (
-	"github.com/lashleykeith/golanggames/app/noise"
+	"github.com/jackmott/noise"
+
 	"math"
 	"math/rand"
 	"reflect"
